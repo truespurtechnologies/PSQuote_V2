@@ -1,0 +1,39 @@
+/* Print-specific styles */
+@media print {
+  /* Hide everything by default */
+  body * {
+    visibility: hidden;
+  }
+
+  /* Only show the print content */
+  .print-content,
+  .print-content * {
+    visibility: visible;
+  }
+
+  /* Position the print content at the top of the page */
+  .print-content {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Hide print button when printing */
+  .no-print {
+    display: none !important;
+  }
+
+  /* Ensure tables and other elements break properly across pages */
+  table, tr, td, th {
+    page-break-inside: avoid;
+  }
+
+  /* Ensure the content fills the page */
+  @page {
+    size: auto;
+    margin: 10mm;
+  }
+}

@@ -1,0 +1,55 @@
+[api]
+auto_approve = true
+
+[db]
+# The port to use for the local database
+port = 54322
+
+# The database major version to use
+major_version = 15
+
+# The database port to use
+port = 54322
+
+# The database name to use
+db_name = "postgres"
+
+# The database user to use
+db_user = "postgres"
+
+# The database password to use
+db_password = "postgres"
+
+# The host to use for the local database
+db_host = "db"
+
+# The port to use for the local database
+db_port = 5432
+
+# The database URL to use
+db_url = "postgresql://postgres:postgres@db:5432/postgres"
+
+[studio]
+# The port to use for the local Studio
+port = 3000
+
+[inbucket]
+# The port to use for the local email testing
+smtp_port = 2500
+pop3_port = 9000
+
+[storage]
+# The port to use for the local storage
+port = 5000
+
+[functions]
+# The port to use for the local functions
+port = 54321
+
+[realtime]
+# The port to use for the local realtime
+port = 4000
+
+[analytics]
+# The port to use for the local analytics
+port = 3001

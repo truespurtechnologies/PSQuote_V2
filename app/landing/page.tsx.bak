@@ -1,0 +1,336 @@
+"use client"
+
+import React, { useMemo } from 'react';
+import { Button } from "@/components/ui/button"
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/hooks/useAuth';
+import { UserProfile } from '@/components/user-profile';
+
+// Simple error boundary component
+class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('Error in UserProfile:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="p-2 text-sm text-red-600 bg-red-50 rounded">
+          Error displaying user profile
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
+// Main Component
+function LandingPageContent() {
+  const router = useRouter();
+  const { session, isLoading, error, signOut } = useAuth(true);
+  
+  // Debug log session data
+  React.useEffect(() => {
+    console.log('=== SESSION DEBUG ===');
+    console.log('Session object:', session);
+    
+    if (session) {
+      console.log('Session user:', session.user);
+      console.log('Session user metadata:', session.user?.user_metadata);
+      console.log('Session app metadata:', session.user?.app_metadata);
+      console.log('Session access token:', session.user ? 'Present' : 'Missing');
+      console.log('Session expires at:', session.expires_at);
+      console.log('Session expires in (seconds):', session.expires_in);
+      
+      // Log all properties of the user object
+      if (session.user) {
+        console.log('User properties:', Object.keys(session.user));
+        console.log('User metadata properties:', session.user.user_metadata ? Object.keys(session.user.user_metadata) : 'No metadata');
+      }
+    } else {
+      console.log('No active session found');
+    }
+    console.log('=====================');
+  }, [session]);
+  
+      (userData.email ? userData.email.split('@')[0] : null) ||
+      'User'
+    );
+    
+    console.log('Resolved display name:', displayName);
+    return displayName;
+  };
+  
+  const handleLogout = async () => {
+    await signOut();
+  };
+
+  // Show loading state with a smooth transition
+  if (isLoading) {
+    return (
+      <div className="transition-opacity duration-300 ease-in-out">
+        <LoadingSpinner 
+          message="Preparing your dashboard..." 
+          className="min-h-screen bg-black/90 backdrop-blur-sm"
+          iconClassName="h-16 w-16 animate-spin text-red-500 mb-4"
+          textClassName="text-white text-lg font-medium"
+        />
+      </div>
+    );
+  }
+
+  // Show error state if needed
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-black p-4">
+        <Card className="w-full max-w-md border-red-500">
+          <CardHeader>
+            <CardTitle className="text-red-500">
+              <div className="flex items-center space-x-2">
+                <svg 
+                  xmlns="http://www.w3.org/2000/svg" 
+                  className="h-6 w-6" 
+                  fill="none" 
+                  viewBox="0 0 24 24" 
+                  stroke="currentColor"
+                >
+                  <path 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round" 
+                    strokeWidth={2} 
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" 
+                  />
+                </svg>
+                <span>Session Error</span>
+              </div>
+            </CardTitle>
+            <CardDescription className="text-gray-600 mt-2">
+              <p className="mb-2">We encountered an issue with your session:</p>
+              <div className="bg-red-50 border-l-4 border-red-500 p-4">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <svg 
+                      className="h-5 w-5 text-red-500" 
+                      xmlns="http://www.w3.org/2000/svg" 
+                      viewBox="0 0 20 20" 
+                      fill="currentColor"
+                    >
+                      <path 
+                        fillRule="evenodd" 
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" 
+                        clipRule="evenodd" 
+                      />
+                    </svg>
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm text-red-700">
+                      {error}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <p className="mt-4 text-sm text-gray-500">
+                Please try again or contact support if the issue persists.
+              </p>
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col space-y-3 pt-0">
+            <Button 
+              onClick={() => window.location.href = '/'} 
+              className="bg-red-600 hover:bg-red-700 transition-colors duration-200"
+            >
+              <header className="bg-white shadow-sm">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+                  <div className="flex items-center space-x-8">
+                    <h1 className="text-xl font-bold text-gray-900">Quotation Generator</h1>
+                    <nav className="hidden md:flex space-x-8">
+                      <a href="#" className="text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 border-indigo-500 text-sm font-medium">
+                        Dashboard
+                      </a>
+                      <a href="#" className="text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium">
+                        History
+                      </a>
+                      <a href="#" className="text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium">
+                        Templates
+                      </a>
+                      <a href="#" className="text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium">
+                        Settings
+                      </a>
+                    </nav>
+                  </div>
+                  <div className="flex items-center space-x-4">
+                    {session && (
+                      <div className="flex items-center space-x-2">
+                        <div className="flex items-center space-x-2 text-sm font-medium bg-gray-100 px-3 py-1.5 rounded-md">
+                          <User className="h-4 w-4 text-gray-700" />
+                          <span className="text-gray-800 font-semibold">
+                            {getUserDisplayName()}
+                          </span>
+                        </div>
+                        <Button
+                          onClick={handleLogout}
+                          variant="outline"
+                          size="sm"
+                          className="border-red-500 text-red-600 hover:bg-red-500 hover:text-white flex items-center"
+                        >
+                          <LogOut className="h-4 w-4 mr-1" />
+                          <span>Logout</span>
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </header>
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => window.location.reload()}
+              className="border-gray-300 text-gray-700 hover:bg-gray-50"
+            >
+              Refresh Page
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-black text-white">
+      {/* Header */}
+      <header className="bg-white text-black shadow-lg border-b-4 border-red-500">
+        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+          <div className="flex items-center">
+            <h1 className="text-2xl font-bold">Popular Steels Quotation Application</h1>
+          </div>
+          <div className="flex items-center space-x-4">
+            {session && (
+              <div className="flex items-center space-x-2">
+                <ErrorBoundary
+                  FallbackComponent={ErrorFallback}
+                  onError={(error) => {
+                    console.error('Error in UserProfile:', error);
+                  }}
+                >
+                  <UserProfile 
+                    displayName={userDisplayName}
+                    email={session?.email}
+                    className="mr-2"
+                  />
+                </ErrorBoundary>
+                <Button
+                  onClick={handleLogout}
+                  variant="outline"
+                  size="sm"
+                  className="border-red-500 text-red-600 hover:bg-red-500 hover:text-white flex items-center"
+                >
+                  <LogOut className="h-4 w-4 mr-1" />
+                  <span>Logout</span>
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="container mx-auto px-4 py-8">
+        <div className="mb-8">
+          <h2 className="text-4xl font-bold text-white mb-2">Welcome, Great Day ahead!</h2>
+          <p className="text-gray-300 text-lg">
+            You have successfully logged into Popular Steels Quotation Generator Application
+          </p>
+        </div>
+
+        {/* Dashboard Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          <Card className="bg-white border-2 border-red-500 hover:shadow-xl transition-shadow">
+            <CardHeader className="flex flex-row items-center space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-black">Profile</CardTitle>
+              <User className="h-4 w-4 ml-auto text-red-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-black">Active</div>
+              <CardDescription className="text-gray-600">Manage your account settings</CardDescription>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white border-2 border-red-500 hover:shadow-xl transition-shadow">
+            <CardHeader className="flex flex-row items-center space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-black">Activity</CardTitle>
+              <Activity className="h-4 w-4 ml-auto text-red-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-black">24</div>
+              <CardDescription className="text-gray-600">Recent activities this week</CardDescription>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white border-2 border-red-500 hover:shadow-xl transition-shadow">
+            <CardHeader className="flex flex-row items-center space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-black">Notifications</CardTitle>
+              <Bell className="h-4 w-4 ml-auto text-red-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-black">3</div>
+              <CardDescription className="text-gray-600">Unread notifications</CardDescription>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="bg-white rounded-lg p-6 border-2 border-red-500">
+          <h3 className="text-xl font-bold text-black mb-4">Quick Actions</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <Button
+              className="bg-red-600 hover:bg-red-700 text-white"
+              onClick={() => router.push("/existing-quotations")}
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              Existing Quotation
+            </Button>
+            <Button className="bg-red-600 hover:bg-red-700 text-white" onClick={() => router.push("/new-quotation")}>
+              <Plus className="h-4 w-4 mr-2" />
+              New Quotation
+            </Button>
+            <Button className="bg-red-600 hover:bg-red-700 text-white" onClick={() => router.push("/settings")}>
+              <Settings className="h-4 w-4 mr-2" />
+              Settings
+            </Button>
+          </div>
+        </div>
+
+        {/* Welcome Message */}
+        <div className="mt-8 text-center">
+          <div className="bg-red-600 text-white p-6 rounded-lg">
+            <h3 className="text-2xl font-bold mb-2">🎉 Login Successful!</h3>
+            <p className="text-lg">Welcome back! You're now logged in to your dashboard.</p>
+          </div>
+        </div>
+      </main>
+    </div>
+  )
+}
+
+// Wrap the component with Error Boundary
+function LandingPage() {
+  return (
+    <ErrorBoundary>
+      <Suspense fallback={<LoadingSpinner />}>
+        <LandingPageContent />
+      </Suspense>
+    </ErrorBoundary>
+  )
+}
+
+export default LandingPage;

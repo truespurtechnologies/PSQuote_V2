@@ -1,0 +1,28 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "next-env.d.ts",
+    "app/**/*",
+    "components/**/*",
+    "hooks/**/*",
+    "lib/**/*",
+    "middleware.ts",
+    "scripts/**/*",
+    "src/**/*",
+    "styles/**/*",
+    "types/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "__tests__",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx",
+    ".next",
+    "backup_*/**",
+    "**/*.backup.tsx",
+    "**/*.backup.ts",
+    "**/*.bak.*"
+  ]
+}

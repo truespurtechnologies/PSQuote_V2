@@ -1,0 +1,531 @@
+import { createBrowserClient } from '@supabase/ssr'
+import { Database } from '../types/database.types'
+
+// Re-export Database type for consistency
+export type { Database }
+
+// Types for structured logging
+type LogLevel = 'info' | 'warn' | 'error' | 'debug'
+type LogContext = Record<string, unknown>
+
+// Custom error class for Supabase client errors
+export class SupabaseClientError extends Error {
+  constructor(
+    message: string,
+    public readonly code?: string,
+    public readonly status?: number,
+    public readonly originalError?: unknown
+  ) {
+    super(message);
+    this.name = 'SupabaseClientError';
+    
+    // Capture stack trace in V8 environments
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, SupabaseClientError);
+    }
+  }
+  
+  toJSON() {
+    return {
+      name: this.name,
+      message: this.message,
+      code: this.code,
+      status: this.status,
+      stack: this.stack,
+    };
+  }
+}
+
+// Helper function to normalize errors
+const normalizeError = (error: unknown): Error => {
+  if (error instanceof Error) {
+    return error;
+  }
+  
+  if (typeof error === 'string') {
+    return new Error(error);
+  }
+  
+  if (error && typeof error === 'object' && 'message' in error) {
+    return new Error(String(error.message));
+  }
+  
+  return new Error('An unknown error occurred');
+};
+
+/**
+ * Structured logger function for consistent logging across the application
+ * @param level - Log level (info, warn, error, debug)
+ * @param message - Human-readable message
+ * @param context - Additional context for the log entry
+ * @param error - Optional error object to include in the log
+ */
+const logger = (
+  level: LogLevel, 
+  message: string, 
+  context: LogContext = {},
+  error?: unknown
+): void => {
+  const timestamp = new Date().toISOString();
+  const errorInfo = error ? { 
+    error: error instanceof Error ? error.message : String(error),
+    ...(error instanceof Error && error.stack ? { stack: error.stack } : {}),
+    ...(error && typeof error === 'object' && 'code' in error ? { code: error.code } : {}),
+    ...(error && typeof error === 'object' && 'status' in error ? { status: error.status } : {}),
+  } : {};
+  
+  const logEntry = {
+    timestamp,
+    level,
+    message,
+    ...context,
+    ...errorInfo,
+    environment: process.env.NODE_ENV,
+  };
+  
+  // In production, you might want to send this to a logging service
+  console[level](JSON.stringify(logEntry, (key, value) => 
+    typeof value === 'bigint' ? value.toString() : value
+  ));
+};
+
+/**
+ * Creates a Supabase client with proper type safety and error handling
+ * @returns A configured Supabase client instance
+ * @throws {SupabaseClientError} If client initialization fails
+ */
+export const createClient = () => {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
+  const isProduction = process.env.NODE_ENV === 'production';
+  
+  // Validate environment variables
+  const missingVars = [
+    !supabaseUrl && 'NEXT_PUBLIC_SUPABASE_URL',
+    !supabaseAnonKey && 'NEXT_PUBLIC_SUPABASE_ANON_KEY',
+  ].filter(Boolean) as string[];
+  
+  if (missingVars.length > 0) {
+    const errorMessage = `Missing required environment variables: ${missingVars.join(', ')}`;
+    const error = new SupabaseClientError(errorMessage, 'MISSING_ENV_VARS', 500);
+    
+    logger('error', 'Failed to initialize Supabase client', {
+      missingVariables: missingVars,
+      nodeEnv: process.env.NODE_ENV,
+    }, error);
+    
+    throw error;
+  }
+  
+  // Validate URL format
+  try {
+    if (supabaseUrl) new URL(supabaseUrl);
+  } catch (urlError) {
+    const errorMessage = `Invalid Supabase URL: ${supabaseUrl}`;
+    const error = new SupabaseClientError(
+      errorMessage, 
+      'INVALID_CONFIGURATION', 
+      500, 
+      urlError
+    );
+    
+    logger('error', 'Invalid Supabase URL', {
+      supabaseUrl: isProduction ? '[REDACTED]' : supabaseUrl,
+    }, error);
+    
+    throw error;
+  }
+  
+  // Validate API key format - JWT format check (header.payload.signature)
+  if (supabaseAnonKey) {
+    const jwtParts = supabaseAnonKey.split('.');
+    if (jwtParts.length !== 3) {
+      const errorMessage = 'Invalid Supabase anon key format: Not a valid JWT';
+      const error = new SupabaseClientError(errorMessage, 'INVALID_CONFIGURATION', 500);
+      
+      logger('error', errorMessage, {
+        keyPrefix: supabaseAnonKey.substring(0, 5) + '...',
+        keyLength: supabaseAnonKey.length,
+      }, error);
+      
+      throw error;
+    }
+    
+    // Additional JWT format validation
+    try {
+      // Check if the header is valid base64url JSON
+      const header = JSON.parse(Buffer.from(jwtParts[0], 'base64').toString());
+      if (!header.typ || !header.alg) {
+        throw new Error('Invalid JWT header');
+      }
+    } catch (jwtError) {
+      const errorMessage = 'Invalid Supabase anon key format: Invalid JWT format';
+      const error = new SupabaseClientError(
+        errorMessage, 
+        'INVALID_CONFIGURATION', 
+        500,
+        jwtError instanceof Error ? jwtError : undefined
+      );
+      
+      logger('error', errorMessage, {
+        keyPrefix: supabaseAnonKey.substring(0, 5) + '...',
+        keyLength: supabaseAnonKey.length,
+      }, error);
+      
+      throw error;
+    }
+  }
+
+  try {
+    logger('info', 'Initializing Supabase client', {
+      url: isProduction ? '[REDACTED]' : supabaseUrl,
+      keyPrefix: isProduction ? '***' : supabaseAnonKey?.substring(0, 5) + '...',
+      keyLength: supabaseAnonKey?.length,
+      nodeEnv: process.env.NODE_ENV,
+    });
+    
+    const client = createBrowserClient<Database>(
+      supabaseUrl!,
+      supabaseAnonKey!,
+      {
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+          detectSessionInUrl: true,
+          flowType: 'pkce',
+          debug: process.env.NODE_ENV === 'development',
+        },
+      }
+    );
+
+    logger('info', 'Supabase client initialized successfully');
+    return client;
+  } catch (error) {
+    const normalizedError = normalizeError(error);
+    const clientError = new SupabaseClientError(
+      `Failed to initialize Supabase: ${normalizedError.message}`,
+      'INITIALIZATION_ERROR',
+      500,
+      normalizedError
+    );
+    
+    logger('error', 'Failed to initialize Supabase client', {}, clientError);
+    throw clientError;
+  }
+
+// Type aliases for better readability
+type UserProfile = Database['public']['Tables']['users']['Row'];
+type Session = Awaited<ReturnType<ReturnType<typeof createClient>['auth']['getSession']>>['data']['session'];
+
+// Global client instance
+const supabase = createClient();
+
+// Helper function to create a minimal user profile
+const createMinimalUserProfile = (user: any): UserProfile => {
+  return {
+    id: user.id,
+    email: user.email || null,
+    full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
+    avatar_url: user.user_metadata?.avatar_url || null,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    // Add any other required fields with default values
+    role: 'user',
+    is_active: true,
+    last_sign_in_at: new Date().toISOString()
+  };
+}
+
+
+/**
+ * Safely gets the current session with proper error handling and type safety
+ * @returns The current user profile or null if no valid session exists
+ * @throws {SupabaseClientError} If there's an error fetching the session
+ */
+export const getCurrentSession = async (): Promise<UserProfile | null> => {
+  try {
+    logger('debug', 'Fetching current session');
+    
+    const { data: { session }, error } = await supabase.auth.getSession();
+    
+    if (error) {
+      throw new SupabaseClientError(
+        `Failed to get session: ${error.message}`,
+        error.code || 'SESSION_FETCH_ERROR',
+        error.status || 500,
+        error
+      );
+    }
+    
+    if (!session) {
+      logger('debug', 'No active session found');
+      return null;
+    }
+    
+    if (!session.user) {
+      logger('warn', 'Session exists but user is missing', { sessionId: session.access_token?.substring(0, 8) });
+      return null;
+    }
+    
+    logger('info', 'Session retrieved', { 
+      userId: session.user.id,
+      expiresAt: session.expires_at ? new Date(session.expires_at * 1000).toISOString() : null,
+      expiresIn: session.expires_in,
+      provider: session.user.app_metadata?.provider,
+    });
+    
+    // Check if session is about to expire (within 5 minutes)
+    const expiresAt = session.expires_at ? new Date(session.expires_at * 1000) : null;
+    const timeUntilExpiry = expiresAt ? expiresAt.getTime() - Date.now() : 0;
+    const fiveMinutes = 5 * 60 * 1000; // 5 minutes in ms
+    
+    if (expiresAt && timeUntilExpiry < fiveMinutes) {
+      const expiresInSeconds = Math.ceil(timeUntilExpiry / 1000);
+      logger('info', 'Session about to expire, refreshing...', { 
+        expiresAt: expiresAt.toISOString(),
+        expiresIn: `${expiresInSeconds}s`,
+        willExpireIn: `${Math.floor(expiresInSeconds / 60)}m ${expiresInSeconds % 60}s`,
+      });
+      
+      try {
+        await refreshSession();
+        logger('info', 'Session refreshed successfully before expiry');
+      } catch (refreshError) {
+        const errorMessage = refreshError instanceof Error ? refreshError.message : 'Unknown error';
+        logger('warn', 'Failed to refresh expiring session', {
+          error: errorMessage,
+          originalError: refreshError,
+        });
+        
+        // If refresh fails and session is already expired, return null
+        if (timeUntilExpiry <= 0) {
+          logger('info', 'Session has expired and refresh failed, logging out');
+          await supabase.auth.signOut();
+          return null;
+        }
+      }
+    }
+    
+    // Get user profile data with error handling
+    try {
+      logger('debug', 'Fetching user profile', { userId: session.user.id });
+      
+      try {
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+        
+        if (userError) {
+          // If table doesn't exist or other database error, create a minimal profile
+          if (userError.code === '42P01') { // 42P01 is the code for "undefined_table"
+            logger('warn', 'Users table does not exist, creating minimal profile', { 
+              userId: session.user.id 
+            });
+            return createMinimalUserProfile(session.user);
+          }
+          
+          throw new SupabaseClientError(
+            `Failed to fetch user profile: ${userError.message}`,
+            'USER_PROFILE_FETCH_ERROR',
+            404,
+            userError
+          );
+        }
+        
+        if (!userData) {
+          // If no user data found, create a minimal profile
+          logger('info', 'No user profile found, creating minimal profile', { 
+            userId: session.user.id 
+          });
+          return createMinimalUserProfile(session.user);
+        }
+        
+        logger('info', 'User profile retrieved', { 
+          userId: userData.id,
+          email: userData.email,
+          fullName: userData.full_name,
+        });
+        
+        return userData;
+      } catch (error: any) {
+        // Catch any errors during the query and return a minimal profile
+        logger('error', 'Error fetching user profile, using fallback', {
+          userId: session.user.id,
+          error: error.message,
+        });
+        return createMinimalUserProfile(session.user);
+      }
+    } catch (error) {
+      const normalizedError = normalizeError(error);
+      logger('error', 'Error fetching user profile', {
+        userId: session.user.id,
+        error: normalizedError.message,
+      }, normalizedError);
+      
+      // Don't block the session if profile fetch fails, but log it
+      // Return a minimal user object with just the ID from the session
+      return {
+        id: session.user.id,
+        email: session.user.email || null,
+        full_name: session.user.user_metadata?.full_name || null,
+        avatar_url: session.user.user_metadata?.avatar_url || null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      } as UserProfile;
+    }
+  } catch (error) {
+    const normalizedError = normalizeError(error);
+    const isAuthError = normalizedError.message.includes('JWT')
+      || normalizedError.message.includes('session')
+      || normalizedError.message.includes('auth');
+    
+    // For auth-related errors, log as warning since they're expected in some cases
+    const logLevel = isAuthError ? 'warn' : 'error';
+    
+    logger(logLevel, 'Failed to get session', {
+      error: normalizedError.message,
+      errorType: normalizedError.name,
+      isAuthError,
+    }, normalizedError);
+    
+    // Clear invalid session
+    if (isAuthError) {
+      try {
+        await supabase.auth.signOut();
+      } catch (signOutError) {
+        logger('error', 'Failed to sign out after session error', {}, signOutError);
+      }
+    }
+    
+    return null;
+  }
+};
+
+/**
+ * Refreshes the current session
+ * @returns The refreshed session data
+ * @throws {Error} If the refresh fails
+ */
+export const refreshSession = async (): Promise<Database['public']['Tables']['users']['Row']> => {
+  try {
+    logger('info', 'Refreshing session');
+    
+    const { data, error } = await supabase.auth.refreshSession();
+    
+    if (error || !data.session) {
+      const errorMessage = error?.message || 'No session data returned';
+      logger('error', 'Error refreshing session', { 
+        error: errorMessage,
+        code: error?.code,
+        status: error?.status,
+      });
+      throw new Error(errorMessage);
+    }
+    
+    logger('info', 'Session refreshed successfully', { 
+      userId: data.session.user?.id,
+      expiresAt: data.session.expires_at,
+      expiresIn: data.session.expires_in,
+    });
+    
+    // Return the updated user profile
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', data.session.user.id)
+      .single();
+    
+    if (userError || !userData) {
+      throw new Error(userError?.message || 'Failed to fetch updated user profile');
+    }
+    
+    return userData;
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    logger('error', 'Failed to refresh session', { 
+      error: errorMessage,
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    throw error;
+  }
+};
+
+/**
+ * Sets up automatic session refresh at regular intervals
+ * @returns A cleanup function to clear the refresh timer
+ */
+const setupSessionRefresh = (): (() => void) => {
+  // Only run in browser
+  if (typeof window === 'undefined') return () => {};
+  
+  const refreshInterval = 4 * 60 * 1000; // 4 minutes
+  
+  const refresh = async () => {
+    try {
+      logger('debug', 'Running background session refresh');
+      await refreshSession();
+      logger('debug', 'Background session refresh completed successfully');
+    } catch (error) {
+      logger('error', 'Background session refresh failed', { 
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+    }
+  };
+  
+  // Initial refresh after 30 seconds to avoid immediate refresh on page load
+  const initialDelay = 30 * 1000;
+  const initialTimer = setTimeout(() => {
+    refresh();
+    // Set up the regular refresh interval
+    setInterval(refresh, refreshInterval);
+  }, initialDelay);
+  
+  // Cleanup function to clear the initial timer
+  return () => {
+    clearTimeout(initialTimer);
+  };
+};
+
+};
+
+// Create and export the supabase client
+export const supabase = createClient();
+
+// Setup session refresh when in browser
+const setupSessionRefresh = (): void => {
+  if (typeof window === 'undefined') return;
+  
+  const refreshInterval = 30 * 60 * 1000; // 30 minutes
+  const initialDelay = 5 * 60 * 1000; // 5 minutes
+  
+  const refresh = async () => {
+    try {
+      await refreshSession();
+      console.log('Session refreshed successfully');
+    } catch (error) {
+      console.error('Failed to refresh session:', error);
+    }
+  };
+  
+  // Initial refresh after delay
+  const initialTimer = setTimeout(() => {
+    refresh();
+    // Set up the regular refresh interval
+    setInterval(refresh, refreshInterval);
+  }, initialDelay);
+  
+  // Cleanup function to clear the initial timer
+  return () => {
+    clearTimeout(initialTimer);
+  };
+};
+
+// Initialize session refresh
+setupSessionRefresh();
+
+// Export types and client
+export type { UserProfile, Session };
+export { supabase };

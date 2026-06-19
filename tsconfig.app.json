@@ -1,0 +1,40 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/lib/supabase/profile-service": ["types/shims/profile-service.ts"],
+      "@/lib/supabase-server": ["types/shims/supabase-server.ts"],
+      "@/lib/auth-utils": ["types/shims/auth-utils.ts"],
+      "@/types/supabase": ["types/shims/supabase.ts"]
+    }
+  },
+  "include": [
+    "next-env.d.ts",
+    "app/**/*",
+    "components/settings/**/*",
+    "hooks/**/*",
+    "lib/**/*",
+    "middleware.ts",
+    "src/**/*",
+    "types/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "__tests__",
+    "components/ui/**/*",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx",
+    ".next",
+    "backup_*/**",
+    "**/*.backup.tsx",
+    "**/*.backup.ts",
+    "**/*.bak.*",
+    "lib/auth-utils.ts",
+    "lib/supabase-server.ts",
+    "lib/supabase/profile-service.ts",
+    "types/supabase.ts"
+  ]
+}
