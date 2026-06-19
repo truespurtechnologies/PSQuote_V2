@@ -48,6 +48,7 @@
     "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.55.0",
     "@types/lodash.debounce": "^4.0.9",
+    "@vercel/analytics": "^2.0.1",
     "autoprefixer": "^10.4.20",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

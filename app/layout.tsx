@@ -4,6 +4,7 @@ import './globals.css';
 import { SupabaseProvider } from '@/components/providers/supabase-provider';
 import { EnhancedAuthProvider } from '@/components/auth/enhanced-auth-context';
 import ClientLayout from './client-layout';
+import { Analytics } from '@vercel/analytics/next';
 
 export default function RootLayout({
   children,
@@ -28,6 +29,7 @@ export default function RootLayout({
             </ClientLayout>
           </EnhancedAuthProvider>
         </SupabaseProvider>
+        <Analytics />
       </body>
     </html>
   );
