@@ -8,9 +8,9 @@ This document lists all product display prefixes used in the system for POS load
 - **BP** - Base Plate
 
 ### Sheets
-- **CR** - CR Sheet (Cold Rolled)
+- **CRS** - CR Sheet (Cold Rolled)
 - **GI** - GI Sheet (Galvanized Iron)
-- **HR** - HR Sheet (Hot Rolled)
+- **HRS** - HR Sheet (Hot Rolled)
 - **ROOF** - Roofing Sheet
 
 ### Cut Plates
@@ -19,7 +19,7 @@ This document lists all product display prefixes used in the system for POS load
 ### MS Structurals
 - **ANG** - MS Angle
 - **CH** - MS Channel
-- **ISMB** - MS I Beam
+- **MSIB** - MS I Beam
 
 ### MS Flats
 - **FL** - MS Flat
@@ -61,12 +61,12 @@ This document lists all product display prefixes used in the system for POS load
 | BR-SQ | MS Bright Bar Square | MS Bright Bar |
 | CH | MS Channel | MS Structurals |
 | CP | Cut Plate | Cut Plate |
-| CR | CR Sheet | Sheets |
+| CRS | CR Sheet | Sheets |
 | FL | MS Flat | MS Flat |
 | GEN | Generic Product | Generic |
 | GI | GI Sheet | Sheets |
-| HR | HR Sheet | Sheets |
-| ISMB | MS I Beam | MS Structurals |
+| HRS | HR Sheet | Sheets |
+| MSIB | MS I Beam | MS Structurals |
 | P-CHS | MS Pipe CHS | MS Pipe |
 | P-RHS | MS Pipe RHS | MS Pipe |
 | P-SHS | MS Pipe SHS | MS Pipe |

@@ -989,16 +989,49 @@ export default function NewQuotationPage() {
   // Helper function to enrich items with product data for POS display
   const enrichItemsWithProductData = (items: QuotationItem[]) => {
     return items.map(item => {
+      let product = null;
+      
+      // First, try to match by productId
       if (item.productId) {
-        const product = products.find(p => p.id === item.productId);
-        if (product) {
-          return {
-            ...item,
-            displayPrefix: product.display_prefix,
-            itemSize: product.item_size
-          };
-        }
+        product = products.find(p => p.id === item.productId);
       }
+      
+      // If no productId or not found, try to match by description (case-insensitive)
+      if (!product && item.description) {
+        // Normalize both descriptions: lowercase, trim, and normalize multiple spaces
+        const normalizeDesc = (desc: string) => desc.toLowerCase().trim().replace(/\s+/g, ' ');
+        const itemDescNormalized = normalizeDesc(item.description);
+        
+        product = products.find(p => {
+          const productDescNormalized = normalizeDesc(p.item_name);
+          return productDescNormalized === itemDescNormalized;
+        });
+        
+        console.log('[Enrichment] Item:', {
+          originalDescription: item.description,
+          normalizedDescription: itemDescNormalized,
+          productFound: !!product,
+          productId: item.productId
+        });
+      }
+      
+      // If product found, enrich with display data
+      if (product) {
+        console.log('[Enrichment] Enriching item:', {
+          description: item.description,
+          displayPrefix: product.display_prefix,
+          itemSize: product.item_size
+        });
+        
+        return {
+          ...item,
+          displayPrefix: product.display_prefix,
+          itemSize: product.item_size,
+          productId: product.id // Also set productId for future reference
+        };
+      }
+      
+      console.log('[Enrichment] No match found for:', item.description);
       return item;
     });
   };

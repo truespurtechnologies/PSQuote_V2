@@ -55,24 +55,49 @@ export function POSQuotationPreview({
   const formatItemDisplay = (item: QuotationItem): string => {
     // Check if this is a pipe product (prefix starts with P-)
     const isPipe = item.displayPrefix?.startsWith('P-');
+    // Check if this is a roofing sheet (prefix is ROOF)
+    const isRoof = item.displayPrefix === 'ROOF';
+    
+    console.log('[POS Quotation] Item:', {
+      description: item.description,
+      displayPrefix: item.displayPrefix,
+      itemSize: item.itemSize,
+      isPipe,
+      isRoof
+    });
     
     // If we have display_prefix and item_size
     if (item.displayPrefix && item.itemSize) {
       // For pipes, show only size (no prefix)
       if (isPipe) {
-        return item.itemSize;
+        const result = item.itemSize;
+        console.log('[POS Quotation] Pipe - returning:', result);
+        return result;
+      }
+      // For roofing sheets, extract only the ft value (e.g., "1.5ft" from "PPGI-0.47-1.5ft")
+      if (isRoof) {
+        const ftMatch = item.itemSize.match(/([0-9.]+ft)$/i);
+        if (ftMatch) {
+          const result = `${item.displayPrefix} ${ftMatch[1]}`;
+          console.log('[POS Quotation] Roof - returning:', result);
+          return result;
+        }
       }
       // For other products, show prefix + size
-      return `${item.displayPrefix} ${item.itemSize}`;
+      const result = `${item.displayPrefix} ${item.itemSize}`;
+      console.log('[POS Quotation] Other - returning:', result);
+      return result;
     }
     
     // Fallback: extract size from description
     const sizeMatch = item.description.match(/([0-9]+x[0-9]+(?:x[0-9.]+)?(?:\s*(?:MM|M|CM|KG|PC|ODx|OD|x))?[0-9.]*(?:\s*(?:MM|M|CM|ft))?)/i);
     if (sizeMatch) {
+      console.log('[POS Quotation] Fallback regex - returning:', sizeMatch[1]);
       return sizeMatch[1];
     }
     
     // Last resort: return full description
+    console.log('[POS Quotation] Last resort - returning full description:', item.description);
     return item.description;
   };
   return (

@@ -31,6 +31,7 @@ interface Product {
   item_sub_category: string;
   item_type: string;
   item_size: string;
+  display_prefix: string | null;
   item_unit: string;
   item_weight: number;
   item_rate: number;
@@ -51,6 +52,7 @@ const defaultNewProduct: NewProduct = {
   item_sub_category: '',
   item_type: '',
   item_size: '',
+  display_prefix: null,
   item_unit: '',
   item_weight: 0,
   item_rate: 0,
@@ -84,6 +86,7 @@ const ProductRow = memo(({
     <TableCell>{renderEditableCell(product, 'item_sub_category')}</TableCell>
     <TableCell>{renderEditableCell(product, 'item_type')}</TableCell>
     <TableCell>{renderEditableCell(product, 'item_size')}</TableCell>
+    <TableCell>{renderEditableCell(product, 'display_prefix')}</TableCell>
     <TableCell>{renderEditableCell(product, 'item_unit')}</TableCell>
     <TableCell className="text-right">{renderEditableCell(product, 'item_weight')}</TableCell>
     <TableCell className="text-right">{renderEditableCell(product, 'item_rate')}</TableCell>
@@ -185,6 +188,7 @@ export const ProductCatalog = () => {
         item_sub_category: product.item_sub_category || '',
         item_type: product.item_type || '',
         item_size: product.item_size || '',
+        display_prefix: product.display_prefix || null,
         item_unit: product.item_unit || '',
         item_weight: Number(product.item_weight || 0),
         item_rate: Number(product.item_rate || 0),
@@ -340,6 +344,7 @@ export const ProductCatalog = () => {
           item_sub_category: row.item_sub_category || '',
           item_type: row.item_type || '',
           item_size: row.item_size || '',
+          display_prefix: row.display_prefix || null,
           item_unit: row.item_unit || '',
           item_weight: Number(row.item_weight || 0),
           item_rate: Number(row.item_rate || 0),
@@ -599,7 +604,7 @@ export const ProductCatalog = () => {
         className="flex items-center justify-between group cursor-pointer p-2 -m-2 rounded hover:bg-gray-100"
         onClick={() => startEditingField(product, field)}
       >
-        <span className="text-inherit">{product[field]}</span>
+        <span className="text-inherit">{product[field] ?? '-'}</span>
         <Pencil className="h-3.5 w-3.5 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
       </div>
     );
@@ -671,6 +676,7 @@ export const ProductCatalog = () => {
                   <TableHead>Sub Category</TableHead>
                   <TableHead>Item Type</TableHead>
                   <TableHead>Item Size</TableHead>
+                  <TableHead>Display Prefix</TableHead>
                   <TableHead>Item Unit</TableHead>
                   <TableHead className="text-right">Weight (kg)</TableHead>
                   <TableHead className="text-right">Rate</TableHead>

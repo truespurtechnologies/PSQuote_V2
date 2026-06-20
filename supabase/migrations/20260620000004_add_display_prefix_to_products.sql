@@ -20,9 +20,9 @@ SET display_prefix = CASE
   WHEN item_category = 'BASE PLATE' THEN 'BP'
   
   -- Sheets
-  WHEN item_category = 'CR SHEET' THEN 'CR'
+  WHEN item_category = 'CR SHEET' THEN 'CRS'
   WHEN item_category = 'GI SHEET' THEN 'GI'
-  WHEN item_category = 'HR SHEET' THEN 'HR'
+  WHEN item_category = 'HR SHEET' THEN 'HRS'
   WHEN item_category = 'ROOFING SHEET' THEN 'ROOF'
   
   -- Cut Plates
@@ -31,7 +31,7 @@ SET display_prefix = CASE
   -- MS Structurals (Angles, Channels, I-Beams)
   WHEN item_category = 'MS STRUCTURALS' AND item_type = 'MS ANGLE' THEN 'ANG'
   WHEN item_category = 'MS STRUCTURALS' AND item_type = 'MS CHANNEL' THEN 'CH'
-  WHEN item_category = 'MS STRUCTURALS' AND item_type = 'MS I BEAM' THEN 'ISMB'
+  WHEN item_category = 'MS STRUCTURALS' AND item_type = 'MS I BEAM' THEN 'MSIB'
   
   -- MS Flats
   WHEN item_category = 'MS FLAT' THEN 'FL'
@@ -45,13 +45,11 @@ SET display_prefix = CASE
   WHEN item_category = 'MS ROUND' THEN 'RD'
   WHEN item_category = 'MS SQUARE' THEN 'SQ'
   
-  -- MS Bright Bar (MSBR)
-  WHEN item_category = 'MS BRIGHT BAR' AND item_type = 'MSBR' THEN 'BR'
-  WHEN item_category = 'MS BRIGHT BAR' AND item_type = 'MSBR FLAT' THEN 'BR-FL'
-  WHEN item_category = 'MS BRIGHT BAR' AND item_type = 'MSBR SQUARE' THEN 'BR-SQ'
-  WHEN item_category = 'MS BRIGHT BAR' AND item_type = 'MSBR  SQUARE' THEN 'BR-SQ'
-  WHEN item_category = 'MS BRIGHT BAR' AND item_type = 'MSBR HEXAGON' THEN 'BR-HEX'
-  WHEN item_category = 'MS BRIGHT BAR' AND item_type = 'MSBR  HEXAGON' THEN 'BR-HEX'
+  -- MS Bright Bar (MSBR) - Handle with/without trailing space
+  WHEN TRIM(item_category) = 'MS BRIGHT BAR' AND item_type = 'MSBR' THEN 'BR'
+  WHEN TRIM(item_category) = 'MS BRIGHT BAR' AND item_type LIKE '%FLAT%' THEN 'BR-FL'
+  WHEN TRIM(item_category) = 'MS BRIGHT BAR' AND item_type LIKE '%SQUARE%' THEN 'BR-SQ'
+  WHEN TRIM(item_category) = 'MS BRIGHT BAR' AND item_type LIKE '%HEXAGON%' THEN 'BR-HEX'
   
   -- TMT Rods
   WHEN item_category = 'TMT ROD' THEN 'TMT'

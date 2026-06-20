@@ -34,6 +34,14 @@ import { POSLoadingSlipPreview } from "@/components/pos-loading-slip-preview"
 import { Printer, Truck, Receipt } from "lucide-react"
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 
+// Import product types for enrichment
+interface Product {
+  id: string
+  item_name: string
+  display_prefix?: string
+  item_size?: string
+}
+
 type QuotationStatus = 'draft' | 'sent' | 'accepted' | 'rejected' | 'expired' | 'approved' | 'pending'
 
 // Local interface to avoid conflict with imported SavedQuotation type
@@ -133,6 +141,10 @@ function ExistingQuotationsPage() {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [itemsPerPage] = useState<number>(30);
   const [totalItems, setTotalItems] = useState<number>(0);
+  
+  // Add products state for enrichment
+  const [products, setProducts] = useState<Product[]>([]);
+  
   // Create a properly typed instance of QuotationDB that implements IQuotationDB
   const quotationDB: IQuotationDB = new QuotationDB();
   const [quotationToDelete, setQuotationToDelete] = useState<FormattedQuotation | null>(null)
@@ -169,6 +181,72 @@ function ExistingQuotationsPage() {
 
     init()
   }, [user, session])
+
+  // Fetch products for enrichment
+  const fetchProducts = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('id, item_name, display_prefix, item_size');
+      
+      if (error) {
+        console.error('Error fetching products:', error);
+        return;
+      }
+      
+      setProducts(data || []);
+    } catch (error) {
+      console.error('Error fetching products:', error);
+    }
+  }, []);
+
+  // Helper function to enrich items with product data for POS display
+  const enrichItemsWithProductData = (items: any[]) => {
+    return items.map(item => {
+      let product = null;
+      
+      // First, try to match by productId
+      if (item.productId) {
+        product = products.find(p => p.id === item.productId);
+      }
+      
+      // If no productId or not found, try to match by description (case-insensitive)
+      if (!product && item.description) {
+        // Normalize both descriptions: lowercase, trim, and normalize multiple spaces
+        const normalizeDesc = (desc: string) => desc.toLowerCase().trim().replace(/\s+/g, ' ');
+        const itemDescNormalized = normalizeDesc(item.description);
+        
+        product = products.find(p => {
+          const productDescNormalized = normalizeDesc(p.item_name);
+          return productDescNormalized === itemDescNormalized;
+        });
+      }
+      
+      // If product found, enrich with display data
+      if (product) {
+        console.log('[Existing Quotation Enrichment] Enriching item:', {
+          description: item.description,
+          displayPrefix: product.display_prefix,
+          itemSize: product.item_size
+        });
+        
+        return {
+          ...item,
+          displayPrefix: product.display_prefix,
+          itemSize: product.item_size,
+          productId: product.id // Also set productId for future reference
+        };
+      }
+      
+      console.log('[Existing Quotation Enrichment] No match found for:', item.description);
+      return item;
+    });
+  };
+
+  // Fetch products when component mounts
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
 
   // Extended interface for database fields
   interface DatabaseQuotation {
@@ -733,7 +811,12 @@ function ExistingQuotationsPage() {
         console.log('Processed items for preview:', JSON.parse(JSON.stringify(items)));
         const filteredItems = items.filter(item => item.description !== 'Item details not available');
         console.log('Filtered items (after removing unavailable):', filteredItems);
-        return filteredItems;
+        
+        // Enrich items with product data for POS display
+        const enrichedItems = enrichItemsWithProductData(filteredItems);
+        console.log('Enriched items for POS display:', enrichedItems);
+        
+        return enrichedItems;
       })(),
       charges: {
         loading: Number((previewQuotation.rawData as any)?.loading_charges) || 0,
