@@ -148,6 +148,12 @@ export function LoginContent() {
         log.info('Login successful, checking session...');
         
         // Get the current session to verify
+        if (!supabase) {
+          setError('Authentication service not available. Please refresh the page.');
+          setIsLoading(false);
+          return;
+        }
+        
         const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError || !currentSession) {
@@ -163,7 +169,18 @@ export function LoginContent() {
         log.info('Session verified, preparing to redirect...');
         
         // Check if we need to redirect to a protected page
-        const redirectTo = searchParams?.get('redirectTo') || '/landing';
+        let redirectTo = searchParams?.get('redirectedFrom') || searchParams?.get('redirectTo') || '/landing';
+        
+        // Don't redirect to root path - always use /landing instead
+        if (redirectTo === '/') {
+          redirectTo = '/landing';
+        }
+        
+        // Wait for cookies to be set - Supabase SSR needs time to write cookies
+        // This prevents race condition where middleware doesn't see the session yet
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        log.info('Redirecting to: ' + redirectTo);
         
         // Use replace instead of push to prevent going back to login page with browser back button
         router.replace(redirectTo);

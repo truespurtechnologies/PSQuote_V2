@@ -2,10 +2,10 @@
 
 import { Button } from "@/components/ui/button"
 import { LogOut } from "lucide-react"
-import { useAuth } from "./auth-context"
+import { useAuth } from "./enhanced-auth-context"
 
 export function SignOutButton() {
-  const { signOut, loading } = useAuth()
+  const { state, signOut } = useAuth()
 
   const handleSignOut = async () => {
     try {
@@ -21,10 +21,10 @@ export function SignOutButton() {
       variant="ghost"
       className="w-full justify-start"
       onClick={handleSignOut}
-      disabled={loading}
+      disabled={state.loading}
     >
       <LogOut className="mr-2 h-4 w-4" />
-      {loading ? "Signing out..." : "Sign out"}
+      {state.loading ? "Signing out..." : "Sign out"}
     </Button>
   )
 }

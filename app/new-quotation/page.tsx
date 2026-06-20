@@ -188,21 +188,27 @@ export default function NewQuotationPage() {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [isFormModified, hasBeenSaved]);
 
-  // Auto-save form data to localStorage to prevent data loss on tab switch
+  // Auto-save form data to localStorage to prevent data loss on tab switch (debounced)
   useEffect(() => {
     // Don't save if we're in edit mode (editing existing quotation)
     if (editId) return;
     
     // Only save if form has been modified
     if (isFormModified) {
-      const formData = {
-        quotationData,
-        items,
-        charges,
-        termsConditions,
-        timestamp: Date.now()
-      };
-      localStorage.setItem('quotation-draft', JSON.stringify(formData));
+      // Debounce the save operation to prevent excessive writes
+      const timeoutId = setTimeout(() => {
+        const formData = {
+          quotationData,
+          items,
+          charges,
+          termsConditions,
+          timestamp: Date.now()
+        };
+        localStorage.setItem('quotation-draft', JSON.stringify(formData));
+        console.log('[Auto-save] Draft saved to localStorage');
+      }, 500); // 500ms debounce
+      
+      return () => clearTimeout(timeoutId);
     }
   }, [quotationData, items, charges, termsConditions, isFormModified, editId]);
 

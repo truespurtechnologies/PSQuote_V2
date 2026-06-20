@@ -86,7 +86,15 @@ export async function middleware(request: NextRequest) {
     );
 
     // Get the session
-    const { data: { session }, error } = await supabase.auth.getSession();
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    
+    // Debug logging
+    const cookieNames = request.cookies.getAll().map(c => c.name);
+    console.log('[Middleware]', currentPath, '| Session:', !!session, '| Cookies:', cookieNames.filter(n => n.includes('sb-')));
+    
+    if (sessionError) {
+      console.error('[Middleware] Session error:', sessionError.message);
+    }
     
     // Handle public paths
     if (isPublicPath(currentPath)) {
@@ -97,6 +105,7 @@ export async function middleware(request: NextRequest) {
       
       // If user is already logged in and tries to access other auth pages, redirect to landing
       if (['/login', '/signup'].includes(currentPath) && session) {
+        console.log('[Middleware] ✓ User logged in, redirecting', currentPath, '→ /landing');
         return NextResponse.redirect(new URL('/landing', request.url));
       }
       return response;
@@ -104,6 +113,7 @@ export async function middleware(request: NextRequest) {
 
     // If there's no session and this is a protected route, redirect to login
     if (!session) {
+      console.log('[Middleware] ✗ No session, redirecting', currentPath, '→ /login');
       // Don't redirect if we're already on the login or update-password page to prevent loops
       if (!['/login', '/update-password'].includes(currentPath)) {
         const loginUrl = new URL('/login', request.url);
@@ -115,9 +125,17 @@ export async function middleware(request: NextRequest) {
       }
       return response;
     }
+    
+    console.log('[Middleware] ✓ Session verified:', currentPath);
 
     // If we have a valid session, ensure we're not on auth pages (except update-password)
     if (['/login', '/signup', '/forgot-password', '/reset-password'].includes(currentPath)) {
+      return NextResponse.redirect(new URL('/landing', request.url));
+    }
+
+    // Redirect root path to landing page when authenticated
+    if (currentPath === '/') {
+      console.log('[Middleware] ✓ Redirecting root to /landing');
       return NextResponse.redirect(new URL('/landing', request.url));
     }
 

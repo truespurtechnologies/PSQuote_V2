@@ -16,11 +16,28 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing required Supabase environment variables');
 }
 
-// Create a simple client without any custom storage first
+// Singleton instance
+let clientInstance: ReturnType<typeof createBrowserClient<Database>> | null = null;
+
+// Create a simple client with consistent configuration
 const createClient = () => {
+  // Return existing instance if available (singleton pattern)
+  if (clientInstance) {
+    return clientInstance;
+  }
+
+  // In development, preserve instance across hot reloads
+  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+    const win = window as any;
+    if (win.__supabaseClient) {
+      clientInstance = win.__supabaseClient;
+      return clientInstance;
+    }
+  }
+
   debug('Creating new Supabase client instance');
   
-  return createBrowserClient<Database>(
+  const client = createBrowserClient<Database>(
     supabaseUrl,
     supabaseAnonKey,
     {
@@ -29,25 +46,22 @@ const createClient = () => {
         autoRefreshToken: true,
         detectSessionInUrl: true,
         flowType: 'pkce',
-        storage: {
-          getItem: (key: string) => {
-            if (typeof window === 'undefined') return null;
-            return localStorage.getItem(key);
-          },
-          setItem: (key: string, value: string) => {
-            if (typeof window === 'undefined') return;
-            localStorage.setItem(key, value);
-          },
-          removeItem: (key: string) => {
-            if (typeof window === 'undefined') return;
-            localStorage.removeItem(key);
-          },
-        },
+        // Don't specify custom storage - let Supabase handle cookies automatically
+        // This ensures server-side middleware can read the session
       },
     }
   );
+
+  clientInstance = client;
+
+  // Store in window for development hot reload persistence
+  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+    (window as any).__supabaseClient = client;
+  }
+
+  return client;
 };
 
-// Create and export the Supabase client
+// Create and export the Supabase client singleton
 export const supabase = createClient();
 export default supabase;

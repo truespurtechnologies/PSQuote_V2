@@ -258,8 +258,7 @@ export function EnhancedAuthProvider({ children }: AuthProviderProps) {
   const [state, dispatch] = useReducer(authReducer, initialState);
   const isMounted = useRef(true);
   const subscription = useRef<{ unsubscribe: () => void } | null>(null);
-  const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const checkSessionRef = useRef<NodeJS.Timeout | null>(null);
+  const isRedirecting = useRef(false);
 
   // Memoize dispatch to prevent unnecessary re-renders
   const stableDispatch = useCallback(dispatch, []);
@@ -270,19 +269,9 @@ export function EnhancedAuthProvider({ children }: AuthProviderProps) {
       subscription.current.unsubscribe();
       subscription.current = null;
     }
-
-    if (refreshTimeoutRef.current) {
-      clearTimeout(refreshTimeoutRef.current);
-      refreshTimeoutRef.current = null;
-    }
-
-    if (checkSessionRef.current) {
-      clearTimeout(checkSessionRef.current);
-      checkSessionRef.current = null;
-    }
   }, []);
 
-  // Handle auth state changes
+  // Handle auth state changes - NO automatic redirects to prevent tab switch issues
   const handleAuthStateChange = useCallback(async (event: string, session: Session | null) => {
     if (!isMounted.current) return;
 
@@ -291,44 +280,23 @@ export function EnhancedAuthProvider({ children }: AuthProviderProps) {
       const appSession = mapToAppSession(session);
       const user = appSession?.user || null;
 
-      // Skip any redirects if we're on auth-related pages
-      if (typeof window !== 'undefined') {
-        const currentPath = window.location.pathname;
-        const authPages = ['/forgot-password', '/update-password', '/reset-password'];
-        
-        if (authPages.some(page => currentPath.startsWith(page))) {
-          console.log(`[Auth] On auth page ${currentPath}, skipping auth state change handling`);
-          return;
-        }
-      }
-
       if (event === 'SIGNED_IN' && user && appSession) {
         console.log('[Auth] User signed in, updating state');
-        // Update the state
         stableDispatch({ type: 'SIGN_IN', payload: { user, session: appSession } });
-        
-        // CRITICAL FIX: Only redirect to /landing if user is on login/signup page
-        // Don't redirect if user is already on other pages (like /new-quotation)
-        // This prevents losing form data when switching tabs
-        if (typeof window !== 'undefined') {
+        // NO automatic redirect - let components/middleware handle routing
+      } else if (event === 'SIGNED_OUT') {
+        console.log('[Auth] User signed out');
+        stableDispatch({ type: 'SIGN_OUT' });
+        // Only redirect if not already redirecting and not on public page
+        if (!isRedirecting.current && typeof window !== 'undefined') {
           const currentPath = window.location.pathname;
-          const loginPages = ['/login', '/signup', '/'];
-          
-          if (loginPages.includes(currentPath)) {
-            try {
-              console.log('[Auth] On login page, redirecting to /landing');
-              await router.push('/landing');
-            } catch (redirectError) {
-              console.error('[Auth] Error during redirect:', redirectError);
-            }
-          } else {
-            console.log('[Auth] Already on protected page, staying on:', currentPath);
+          const publicPages = ['/login', '/signup', '/forgot-password', '/reset-password', '/update-password'];
+          if (!publicPages.includes(currentPath)) {
+            isRedirecting.current = true;
+            router.push('/login');
+            setTimeout(() => { isRedirecting.current = false; }, 1000);
           }
         }
-      } else if (event === 'SIGNED_OUT') {
-        console.log('[Auth] User signed out, redirecting to login');
-        stableDispatch({ type: 'SIGN_OUT' });
-        router.push('/login');
       } else if (event === 'TOKEN_REFRESHED' && appSession) {
         console.log('[Auth] Token refreshed');
         stableDispatch({ type: 'REFRESH_SESSION', payload: { session: appSession } });
@@ -344,6 +312,57 @@ export function EnhancedAuthProvider({ children }: AuthProviderProps) {
       });
     }
   }, [router, stableDispatch]);
+
+  // Tab visibility change handler - verify session when tab becomes visible
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'visible' && state.user) {
+        console.log('[Auth] Tab became visible, verifying session');
+        try {
+          const { data: { session }, error } = await supabaseClient.auth.getSession();
+          if (error) throw error;
+          
+          if (!session && state.user) {
+            console.log('[Auth] Session expired while tab was hidden');
+            dispatch({ type: 'SIGN_OUT' });
+            if (!isRedirecting.current) {
+              isRedirecting.current = true;
+              router.push('/login');
+              setTimeout(() => { isRedirecting.current = false; }, 1000);
+            }
+          }
+        } catch (error) {
+          console.error('[Auth] Error verifying session on visibility change:', error);
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [state.user, router]);
+
+  // Cross-tab session synchronization
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleStorageChange = (e: StorageEvent) => {
+      // Check if auth token was removed (user logged out in another tab)
+      if (e.key?.startsWith('sb-') && e.newValue === null && state.user) {
+        console.log('[Auth] User logged out in another tab');
+        dispatch({ type: 'SIGN_OUT' });
+        if (!isRedirecting.current) {
+          isRedirecting.current = true;
+          router.push('/login');
+          setTimeout(() => { isRedirecting.current = false; }, 1000);
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [state.user, router]);
 
   // Set up the auth state change listener
   useEffect(() => {
@@ -391,7 +410,7 @@ export function EnhancedAuthProvider({ children }: AuthProviderProps) {
     return () => {
       cleanup();
     };
-  }, [supabaseClient, handleAuthStateChange]);
+  }, [supabaseClient, handleAuthStateChange, cleanup]);
 
   // Sign in with email and password
   const signIn = useCallback(async (email: string, password: string): Promise<AuthResponse> => {
@@ -579,7 +598,7 @@ export function EnhancedAuthProvider({ children }: AuthProviderProps) {
     }
   }, [router]);
 
-  // Refresh session implementation
+  // Refresh session implementation - simplified, relies on Supabase autoRefreshToken
   const refreshSession = useCallback(async (): Promise<AuthResponse> => {
     if (!supabaseClient?.auth) {
       const error = new Error('Auth client not available');
@@ -588,12 +607,13 @@ export function EnhancedAuthProvider({ children }: AuthProviderProps) {
     }
 
     try {
-      const { data, error } = await supabaseClient.auth.refreshSession();
+      // Just get the current session - Supabase handles refresh automatically
+      const { data, error } = await supabaseClient.auth.getSession();
       if (error) throw error;
       
       const session = data?.session;
       if (!session) {
-        throw new Error('No session found after refresh');
+        throw new Error('No session found');
       }
 
       const appSession = mapToAppSession(session);
@@ -614,15 +634,13 @@ export function EnhancedAuthProvider({ children }: AuthProviderProps) {
         error: null,
       };
     } catch (error) {
-      console.error('Error refreshing session:', error);
-      // If refresh fails, sign out to be safe
-      await signOut();
+      console.error('Error getting session:', error);
       return { 
         data: { user: null, session: null }, 
-        error: error instanceof Error ? error : new Error('Failed to refresh session') 
+        error: error instanceof Error ? error : new Error('Failed to get session') 
       };
     }
-  }, [supabaseClient, signOut]);
+  }, [supabaseClient]);
 
   // Memoize the context value
   const contextValue = useMemo<AuthContextType>(() => ({
