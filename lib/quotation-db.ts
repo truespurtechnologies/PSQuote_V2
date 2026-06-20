@@ -3,7 +3,7 @@
 import { getQuotationService, initializeQuotationService } from './supabase/quotation-service';
 import type { SavedQuotation as QuotationServiceSavedQuotation } from './supabase/quotation-service';
 import { supabase } from './supabase/client';
-import type { Database } from '@/types/database.types';
+import type { Database } from '@/lib/database.types';
 
 // Re-export the SavedQuotation type for backward compatibility
 export type SavedQuotation = QuotationServiceSavedQuotation;

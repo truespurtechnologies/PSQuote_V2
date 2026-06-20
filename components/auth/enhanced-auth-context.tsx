@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
 
 // Import the Database type from the generated types
-import type { Database } from '@/types/database.types';
+import type { Database } from '@/lib/database.types';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 // Create a properly typed Supabase client instance

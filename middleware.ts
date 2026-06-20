@@ -1,7 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import type { CookieOptions } from '@supabase/ssr'
-import { Database } from '@/types/database.types'
+import { Database } from '@/lib/database.types'
 
 // Define types for better type safety
 type SupabaseClient = ReturnType<typeof createServerClient<Database>>;

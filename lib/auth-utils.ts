@@ -1,14 +1,18 @@
 import { createBrowserClient } from '@supabase/ssr';
-import { Database } from '@/types/database.types';
+import { Database } from '@/lib/database.types';
 
-// User type based on the database schema
-type User = Database['public']['Tables']['users']['Row'];
+// User type based on the database schema (using profiles table)
+type Profile = Database['public']['Tables']['profiles']['Row'];
 
 // Extended user type with required fields
-export type AppUser = User & {
+export type AppUser = {
+  id: string;
   email?: string | null;
   full_name?: string | null;
   avatar_url?: string | null;
+  username?: string | null;
+  role?: string | null;
+  is_active?: boolean | null;
   created_at: string;
   updated_at: string;
 };

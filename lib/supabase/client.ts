@@ -1,5 +1,5 @@
 import { createBrowserClient } from '@supabase/ssr';
-import { Database } from '@/types/database.types';
+import { Database } from '@/lib/database.types';
 
 // Debug function
 const debug = (message: string, ...args: any[]) => {

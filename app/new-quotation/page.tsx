@@ -22,7 +22,7 @@ import { POSLoadingSlipPreview } from "@/components/pos-loading-slip-preview"
 import { QuotationItemsTable } from "@/components/quotation-items-table"
 import { useAuth } from "@/components/auth/enhanced-auth-context"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
-import type { TablesInsert, Tables } from "@/types/database.types"
+import type { TablesInsert, Tables } from "@/lib/database.types"
 
 interface QuotationItem {
   id: string
@@ -631,7 +631,7 @@ export default function NewQuotationPage() {
         grand_total: grandTotal,
         status: 'draft',
         terms_conditions: termsConditions.filter(t => t.trim() !== ''),
-        created_by: user?.id,
+        created_by: user?.id || '',
         // created_at and updated_at will be handled by the database
       };
       
@@ -689,9 +689,14 @@ export default function NewQuotationPage() {
         }
 
         if (quoteError) {
-          console.error('[quotations.insert] error:', quoteError);
+          console.error('[quotations.insert] Full error:', quoteError);
+          console.error('[quotations.insert] Error code:', (quoteError as any)?.code);
+          console.error('[quotations.insert] Error message:', (quoteError as any)?.message);
+          console.error('[quotations.insert] Error details:', (quoteError as any)?.details);
+          console.error('[quotations.insert] Data attempted:', insertData);
           throw new Error(`[quotations.insert] ${((quoteError as any)?.code || '')} ${(quoteError as any)?.message || 'Unknown error'}`);
         }
+        console.log('[quotations.insert] Success! Quotation ID:', savedQuotation?.id);
         targetQuotationId = savedQuotation?.id ?? null;
         // Capture DB-allocated quotation number for UI
         if (savedQuotation?.quotation_number) {
@@ -726,12 +731,13 @@ export default function NewQuotationPage() {
 
             return {
               quotation_id: targetQuotationId,
-              description: item.description,
               product_id: pid,
+              description: item.description,
               qty: item.requiredQty,
               qty_in_kg_pc: item.qtyInKgPc || 0,
-              unit_rate: item.unitRate || 0
-              // total_qty_kg and total_value are generated columns in DB; do not include here
+              unit_rate: item.unitRate || 0,
+              total_value: item.totalValue || 0,
+              created_by: user?.id || ''
             } as TablesInsert<'quotation_items'>;
           });
         
@@ -748,12 +754,21 @@ export default function NewQuotationPage() {
             }
           }
           
+          console.log('[quotation_items] Attempting to insert:', itemsToSave);
+          console.log('[quotation_items] Target quotation ID:', targetQuotationId);
+          console.log('[quotation_items] User ID:', user?.id);
+          
           const { error: itemsError } = await supabase
             .from('quotation_items')
             .insert(itemsToSave);
             
           if (itemsError) {
-            console.error('[quotation_items.insert] error:', itemsError);
+            console.error('[quotation_items.insert] Full error object:', itemsError);
+            console.error('[quotation_items.insert] Error code:', (itemsError as any)?.code);
+            console.error('[quotation_items.insert] Error message:', (itemsError as any)?.message);
+            console.error('[quotation_items.insert] Error details:', (itemsError as any)?.details);
+            console.error('[quotation_items.insert] Error hint:', (itemsError as any)?.hint);
+            console.error('[quotation_items.insert] Error stringified:', JSON.stringify(itemsError, null, 2));
             throw new Error(`[quotation_items.insert] ${((itemsError as any)?.code || '')} ${(itemsError as any)?.message || 'Unknown error'}`);
           }
         }
