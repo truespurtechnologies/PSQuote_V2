@@ -209,7 +209,7 @@ export function LoadingSlipPreview({
             </thead>
             <tbody>
               {items
-                .filter(item => item.description.trim() !== '') // Filter out items with empty descriptions
+                .filter(item => item.description.trim() !== '' && item.requiredQty > 0) // Filter out empty items and zero quantity
                 .map((item, index) => (
                   <tr key={item.id} className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
                     <td className="border border-gray-400 p-2 text-center text-xs">{index + 1}</td>

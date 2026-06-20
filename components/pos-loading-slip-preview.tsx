@@ -187,13 +187,15 @@ export function POSLoadingSlipPreview({
         {/* Items */}
         <div className="pos-section" style={{ marginTop: '6mm' }}>
           <div className="text-base font-bold">LOADING ITEMS:</div>
-          {items.map((item, index) => (
-            <div key={item.id} className="pos-item-row text-base font-bold" style={{ marginBottom: '2mm' }}>
-              <div style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}>
-                {index + 1}){extractSize(item.description)} Qty: {item.requiredQty}
+          {items
+            .filter(item => item.description.trim() !== '' && item.requiredQty > 0) // Filter out empty items and zero quantity
+            .map((item, index) => (
+              <div key={item.id} className="pos-item-row text-base font-bold" style={{ marginBottom: '2mm' }}>
+                <div style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}>
+                  {index + 1}){extractSize(item.description)} Qty: {item.requiredQty}
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
         </div>
 
         <div className="pos-divider"></div>

@@ -207,19 +207,21 @@ export function POSQuotationPreview({
         {/* Items */}
         <div className="pos-section" style={{ marginTop: '6mm' }}>
           <div className="text-base font-bold">ITEMS:</div>
-          {items.map((item, index) => (
-            <div key={item.id} className="pos-item-row text-base font-bold" style={{ marginBottom: '2mm' }}>
-              <div className="font-bold" style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}>
-                {index + 1}){extractSize(item.description)}
+          {items
+            .filter(item => item.description.trim() !== '' && item.requiredQty > 0) // Filter out empty items and zero quantity
+            .map((item, index) => (
+              <div key={item.id} className="pos-item-row text-base font-bold" style={{ marginBottom: '2mm' }}>
+                <div className="font-bold" style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}>
+                  {index + 1}){extractSize(item.description)}
+                </div>
+                <div className="font-bold" style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}>
+                  Qty: {item.requiredQty} Wt: {item.totalQtyKg.toFixed(2)}kg
+                </div>
+                <div className="font-bold" style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}>
+                  Rate: ₹{item.unitRate.toFixed(2)} ₹{item.totalValue.toFixed(2)}
+                </div>
               </div>
-              <div className="font-bold" style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}>
-                Qty: {item.requiredQty} Wt: {item.totalQtyKg.toFixed(2)}kg
-              </div>
-              <div className="font-bold" style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}>
-                Rate: ₹{item.unitRate.toFixed(2)} ₹{item.totalValue.toFixed(2)}
-              </div>
-            </div>
-          ))}
+            ))}
         </div>
 
         <div className="pos-divider"></div>
