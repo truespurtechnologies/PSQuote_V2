@@ -4,17 +4,6 @@
   "installCommand": "npm install",
   "framework": "nextjs",
   "regions": ["iad1"],
-  "env": {
-    "NEXT_PUBLIC_SUPABASE_URL": "https://your-project-id.supabase.co",
-    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "your-supabase-anon-key",
-    "NEXT_PUBLIC_DEBUG": "false",
-    "NEXT_PUBLIC_ENABLE_SESSION_TIMEOUT": "false",
-    "NEXT_PUBLIC_SESSION_REFRESH_INTERVAL": "300000",
-    "NODE_ENV": "production",
-    "LOG_LEVEL": "info",
-    "NEXT_PUBLIC_FEATURE_AUTH": "true",
-    "NEXT_PUBLIC_FEATURE_ANALYTICS": "false"
-  },
   "build": {
     "env": {
       "NEXT_TELEMETRY_DISABLED": "1"

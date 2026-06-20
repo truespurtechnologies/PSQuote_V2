@@ -2,7 +2,7 @@
 import '@testing-library/jest-dom';
 
 // Mock Supabase client
-jest.mock('@/lib/supabase-client', () => ({
+jest.mock('@/lib/supabase/client', () => ({
   supabase: {
     auth: {
       getSession: jest.fn(),

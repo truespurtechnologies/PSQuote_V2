@@ -17,10 +17,10 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 // Singleton instance
-let clientInstance: ReturnType<typeof createBrowserClient<Database>> | null = null;
+let clientInstance: ReturnType<typeof createBrowserClient<Database>> | undefined = undefined;
 
 // Create a simple client with consistent configuration
-const createClient = () => {
+const createClient = (): ReturnType<typeof createBrowserClient<Database>> => {
   // Return existing instance if available (singleton pattern)
   if (clientInstance) {
     return clientInstance;
@@ -30,7 +30,7 @@ const createClient = () => {
   if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
     const win = window as any;
     if (win.__supabaseClient) {
-      clientInstance = win.__supabaseClient;
+      clientInstance = win.__supabaseClient as ReturnType<typeof createBrowserClient<Database>>;
       return clientInstance;
     }
   }
@@ -65,3 +65,26 @@ const createClient = () => {
 // Create and export the Supabase client singleton
 export const supabase = createClient();
 export default supabase;
+
+// Session management helper functions
+export async function getCurrentSession() {
+  try {
+    const { data: { session }, error } = await supabase.auth.getSession();
+    if (error) throw error;
+    return session;
+  } catch (error) {
+    console.error('Failed to get current session:', error);
+    return null;
+  }
+}
+
+export async function refreshSession() {
+  try {
+    const { data: { session }, error } = await supabase.auth.refreshSession();
+    if (error) throw error;
+    return session;
+  } catch (error) {
+    console.error('Failed to refresh session:', error);
+    return null;
+  }
+}

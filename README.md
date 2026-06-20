@@ -110,19 +110,25 @@ npm run test:coverage
 
 ### Environment Variables
 
-Key environment variables (see `env.example` for complete list):
+**Required environment variables** (configure in Vercel Dashboard > Project Settings > Environment Variables):
 
 ```env
-# Supabase Configuration
-NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
+# Supabase Configuration (REQUIRED)
+NEXT_PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key  # Server-only, never expose to browser
 
-# Session Management
+# Optional Configuration
 NEXT_PUBLIC_SESSION_REFRESH_INTERVAL=300000
-
-# Feature Flags
 NEXT_PUBLIC_FEATURE_AUTH=true
+NEXT_PUBLIC_DEBUG=false
 ```
+
+**Important Security Notes:**
+- ⚠️ Never commit `.env.local` or actual credentials to git
+- ⚠️ `SUPABASE_SERVICE_ROLE_KEY` must only be used in server-side code (API routes, server components)
+- ⚠️ Environment variables are NOT stored in `vercel.json` - configure them in Vercel Dashboard
+- ✅ Use `.env.example` as a template for local development
 
 ### Next.js Configuration
 
