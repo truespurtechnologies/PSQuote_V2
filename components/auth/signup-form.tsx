@@ -31,8 +31,8 @@ export function SignupForm() {
       // The user will be redirected to login with a success message
       const redirectUrl = '/login?registered=true';
       console.log('Redirecting to:', redirectUrl);
-      // Use window.location to ensure full page reload with the new URL
-      window.location.href = redirectUrl;
+      // Use client-side navigation to avoid full page reload
+      router.push(redirectUrl);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create account');
       console.error('Signup error:', err);

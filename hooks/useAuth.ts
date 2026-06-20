@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback, useReducer } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase, getCurrentSession, refreshSession } from '@/lib/supabase-client';
+import { supabase } from '@/lib/supabase/client';
+import { getCurrentSession, refreshSession } from '@/lib/supabase-client';
 import { AuthState, initialAuthState, authReducer, AppSession, AppUser } from '@/types/auth';
 
 // Helper function to convert UserProfile to AppSession
@@ -178,9 +179,9 @@ export const useAuth = (requireAuth = true) => {
         case 'SIGNED_OUT':
           setSession(null);
           if (requireAuth) {
-            // Use window.location to ensure a full page reload and clear any stale state
+            // Use client-side navigation to avoid full page reload
             if (window.location.pathname !== '/') {
-              window.location.href = '/';
+              router.push('/');
             }
           }
           break;
@@ -204,13 +205,13 @@ export const useAuth = (requireAuth = true) => {
           setSession(appSession);
           setError(null);
         } else if (requireAuth && window.location.pathname !== '/') {
-          window.location.href = '/';
+          router.push('/');
         }
       } catch (error) {
         console.error('Initial auth check failed:', error);
         setError('Failed to check authentication status');
         if (requireAuth && window.location.pathname !== '/') {
-          window.location.href = '/';
+          router.push('/');
         }
       } finally {
         if (isMounted) {
@@ -221,16 +222,17 @@ export const useAuth = (requireAuth = true) => {
 
     initializeAuth();
 
-    // Set up session refresh interval
-    refreshInterval = setInterval(async () => {
-      try {
-        if (isMounted) {
-          await refreshSession();
-        }
-      } catch (error) {
-        console.error('Session refresh error:', error);
-      }
-    }, SESSION_REFRESH_INTERVAL);
+    // DISABLED: Session refresh interval causes page reloads when switching tabs
+    // The enhanced auth context handles session refresh automatically via Supabase's autoRefreshToken
+    // refreshInterval = setInterval(async () => {
+    //   try {
+    //     if (isMounted) {
+    //       await refreshSession();
+    //     }
+    //   } catch (error) {
+    //     console.error('Session refresh error:', error);
+    //   }
+    // }, SESSION_REFRESH_INTERVAL);
 
     // Cleanup
     return () => {
@@ -242,7 +244,7 @@ export const useAuth = (requireAuth = true) => {
         clearInterval(refreshInterval);
       }
     };
-  }, [requireAuth, setError, setLoading, setSession]);
+  }, [requireAuth, setError, setLoading, setSession, router]);
 
   const signOut = async () => {
     try {
@@ -254,7 +256,7 @@ export const useAuth = (requireAuth = true) => {
       }
       
       setSession(null);
-      window.location.href = '/';
+      router.push('/');
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to sign out';
       console.error('Sign out error:', errorMessage);

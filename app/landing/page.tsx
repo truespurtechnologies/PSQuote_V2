@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic'
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/use-enhanced-auth';
 import { UserProfile } from '@/components/user-profile';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { LogOut, User, Activity, Bell, FileText, Plus, Settings } from 'lucide-react';
@@ -94,6 +94,13 @@ function LandingPageContent() {
   const [monthlyQuoteCount, setMonthlyQuoteCount] = useState<number | null>(null);
   const [monthLabel, setMonthLabel] = useState<string>('');
   const [isSigningOut, setIsSigningOut] = useState(false);
+  
+  // Handle redirect when session is lost (e.g., after logout)
+  useEffect(() => {
+    if (!isLoading && !session) {
+      router.push('/');
+    }
+  }, [isLoading, session, router]);
   
   // Fetch user profile from database
   useEffect(() => {
@@ -215,16 +222,8 @@ function LandingPageContent() {
     }
   };
 
-  // Show loading state or redirect if no session
+  // Show loading state
   if (isLoading || !session) {
-    // If we're not loading but have no session, redirect to login
-    if (!isLoading && !session) {
-      if (typeof window !== 'undefined') {
-        window.location.href = '/';
-      }
-      return null;
-    }
-    
     return (
       <div className="min-h-screen flex items-center justify-center bg-black">
         <LoadingSpinner 
@@ -295,7 +294,7 @@ function LandingPageContent() {
           <CardContent className="flex flex-col space-y-3 pt-0">
             {/* Standalone navigation button to avoid nesting buttons */}
             <Button 
-              onClick={() => (window.location.href = '/')}
+              onClick={() => router.push('/')}
               className="bg-red-600 hover:bg-red-700 transition-colors duration-200"
             >
               Go to Login

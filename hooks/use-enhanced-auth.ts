@@ -4,7 +4,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useEffect } from 'react';
 import { useAuth as useEnhancedAuth } from '@/components/auth/enhanced-auth-context';
 import { AppSession } from '@/types/auth';
-import { supabase } from '@/lib/supabase-client';
+import { supabase } from '@/lib/supabase/client';
 
 /**
  * A hook that provides authentication state and methods.
@@ -83,14 +83,14 @@ export const useAuth = (requireAuth = true) => {
   // Use the session directly with proper type assertion
   const appSession: AppSession | null = session as AppSession | null;
 
-  // Handle redirects if authentication is required
-  const pathname = usePathname();
-  useEffect(() => {
-    const publicPaths = ['/login', '/signup', '/forgot-password', '/reset-password', '/update-password'];
-    if (requireAuth && !isLoading && !user && !publicPaths.includes(pathname)) {
-      router.push('/login');
-    }
-  }, [requireAuth, isLoading, user, pathname, router]);
+  // REMOVED: Client-side auth redirect logic
+  // The middleware.ts already handles authentication redirects on the server side
+  // Removing this prevents unnecessary redirects when switching tabs that cause form data loss
+  // 
+  // Previous issue: When switching tabs, this useEffect would trigger and redirect to /login
+  // even though the user was authenticated, causing loss of form data in pages like /new-quotation
+  //
+  // The middleware is the single source of truth for auth redirects
 
   return {
     session: appSession,

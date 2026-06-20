@@ -109,6 +109,7 @@ export default function NewQuotationPage() {
   const [showPOSQuotation, setShowPOSQuotation] = useState(false);
   const [showPOSLoadingSlip, setShowPOSLoadingSlip] = useState(false);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [showUnsavedChangesDialog, setShowUnsavedChangesDialog] = useState(false);
   const [editingCharges, setEditingCharges] = useState<Record<string, string>>({});
   
   // Data State
@@ -172,6 +173,65 @@ export default function NewQuotationPage() {
   useEffect(() => {
     fetchProducts();
   }, []);
+
+  // Warn user before leaving page with unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      // Only show warning if form has unsaved changes and hasn't been saved yet
+      if (isFormModified && !hasBeenSaved) {
+        e.preventDefault();
+        e.returnValue = ''; // Required for Chrome
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isFormModified, hasBeenSaved]);
+
+  // Auto-save form data to localStorage to prevent data loss on tab switch
+  useEffect(() => {
+    // Don't save if we're in edit mode (editing existing quotation)
+    if (editId) return;
+    
+    // Only save if form has been modified
+    if (isFormModified) {
+      const formData = {
+        quotationData,
+        items,
+        charges,
+        termsConditions,
+        timestamp: Date.now()
+      };
+      localStorage.setItem('quotation-draft', JSON.stringify(formData));
+    }
+  }, [quotationData, items, charges, termsConditions, isFormModified, editId]);
+
+  // Restore form data from localStorage on mount
+  useEffect(() => {
+    // Don't restore if we're in edit mode
+    if (editId) return;
+    
+    const savedDraft = localStorage.getItem('quotation-draft');
+    if (savedDraft) {
+      try {
+        const parsed = JSON.parse(savedDraft);
+        // Only restore if draft is less than 24 hours old
+        const age = Date.now() - (parsed.timestamp || 0);
+        if (age < 24 * 60 * 60 * 1000) {
+          setQuotationData(parsed.quotationData || getInitialFormState().quotationData);
+          setItems(parsed.items || getInitialFormState().items);
+          setCharges(parsed.charges || getInitialFormState().charges);
+          setTermsConditions(parsed.termsConditions || getInitialFormState().termsConditions);
+        } else {
+          // Clear old draft
+          localStorage.removeItem('quotation-draft');
+        }
+      } catch (error) {
+        console.error('Error restoring draft:', error);
+        localStorage.removeItem('quotation-draft');
+      }
+    }
+  }, [editId]);
 
   // Edit mode: load existing quotation and prefill form
   useEffect(() => {
@@ -379,24 +439,30 @@ export default function NewQuotationPage() {
     }
   }
 
-  // Check if form has been modified
+  // Check if form has been modified with meaningful user input
   useEffect(() => {
-    const currentState = {
-      quotationData,
-      items: items.map(({ id, ...rest }) => rest), // Exclude id from comparison
-      charges,
-      termsConditions
-    };
-
-    const initialState = getInitialFormState();
-    const isModified = 
-      JSON.stringify(currentState.quotationData) !== JSON.stringify(initialState.quotationData) ||
-      JSON.stringify(currentState.items) !== JSON.stringify(initialState.items) ||
-      JSON.stringify(currentState.charges) !== JSON.stringify(initialState.charges) ||
-      JSON.stringify(currentState.termsConditions) !== JSON.stringify(initialState.termsConditions);
+    // Check if user has entered customer information
+    const hasCustomerData = quotationData.to.trim() !== '' || quotationData.phone.trim() !== '';
+    
+    // Check if user has entered any item data
+    const hasItemData = items.some(item => 
+      item.description.trim() !== '' || 
+      item.requiredQty > 0 || 
+      item.qtyInKgPc > 0 || 
+      item.unitRate > 0
+    );
+    
+    // Check if user has modified charges (beyond defaults)
+    const initialCharges = getInitialFormState().charges;
+    const hasChargesModified = 
+      charges.loading !== initialCharges.loading ||
+      charges.gstRate !== initialCharges.gstRate;
+    
+    // Form is considered modified if user has entered any meaningful data
+    const isModified = hasCustomerData || hasItemData || hasChargesModified;
 
     setIsFormModified(isModified);
-  }, [quotationData, items, charges, termsConditions]);
+  }, [quotationData, items, charges]);
 
   // Reset form to initial state
   const resetForm = () => {
@@ -406,6 +472,13 @@ export default function NewQuotationPage() {
     setCharges(initialState.charges);
     setTermsConditions(initialState.termsConditions);
     
+    // Clear localStorage draft
+    localStorage.removeItem('quotation-draft');
+    
+    // Reset modification flag
+    setIsFormModified(false);
+    setHasBeenSaved(false);
+    
     // Reset any edit state
     if (editId) {
       router.push('/new-quotation');
@@ -413,6 +486,30 @@ export default function NewQuotationPage() {
     
     // Close all previews
     resetAllPreviews();
+  };
+
+  // Handle back button click with confirmation
+  const handleBackClick = () => {
+    // If form has unsaved changes, show confirmation dialog
+    if (isFormModified && !hasBeenSaved) {
+      setShowUnsavedChangesDialog(true);
+    } else {
+      // No unsaved changes, navigate directly
+      router.push('/landing');
+    }
+  };
+
+  // Handle confirmed navigation away from page
+  const handleConfirmLeave = () => {
+    // Clear localStorage draft since user chose to leave
+    localStorage.removeItem('quotation-draft');
+    setShowUnsavedChangesDialog(false);
+    router.push('/landing');
+  };
+
+  // Handle cancel leave
+  const handleCancelLeave = () => {
+    setShowUnsavedChangesDialog(false);
   };
 
   const handleSubmit = async (e: React.FormEvent, shouldReset = false) => {
@@ -657,6 +754,9 @@ export default function NewQuotationPage() {
         title: "Success",
         description: `Quotation ${editId ? 'updated' : 'saved'} successfully!`,
       });
+      
+      // Clear localStorage draft since quotation is now saved
+      localStorage.removeItem('quotation-draft');
       
       // Show success dialog with print options (savedQuotationNumber already set for insert above)
       if (quotationNumber) {
@@ -1035,12 +1135,41 @@ export default function NewQuotationPage() {
           </div>
         </DialogContent>
       </Dialog>
+      {/* Unsaved Changes Confirmation Dialog */}
+      <Dialog open={showUnsavedChangesDialog} onOpenChange={setShowUnsavedChangesDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-red-600">Unsaved Changes</DialogTitle>
+            <DialogDescription className="text-base pt-4">
+              You have unsaved changes in this quotation. Going back will lose all the data you've entered.
+              <br /><br />
+              <strong>Do you want to go back?</strong>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-3 pt-4">
+            <Button
+              onClick={handleCancelLeave}
+              className="w-full bg-green-600 hover:bg-green-700 text-white"
+            >
+              No, Stay on Page
+            </Button>
+            <Button
+              onClick={handleConfirmLeave}
+              variant="outline"
+              className="w-full border-red-500 text-red-600 hover:bg-red-500 hover:text-white"
+            >
+              Yes, Go Back (Lose Changes)
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Header */}
       <header className="bg-white text-black shadow-lg border-b-4 border-red-500">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center space-x-4">
             <Button
-              onClick={() => router.push("/landing")}
+              onClick={handleBackClick}
               variant="outline"
               size="sm"
               className="border-red-500 text-red-600 hover:bg-red-500 hover:text-white"

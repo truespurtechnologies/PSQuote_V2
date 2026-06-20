@@ -33,14 +33,5 @@ export function createClient() {
 
 export const supabase = createClient();
 
-// Add auth state change listener for debugging
-if (typeof window !== 'undefined') {
-  const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-    console.log('Auth state changed:', event, session);
-  });
-  
-  // Cleanup on unmount
-  window.addEventListener('beforeunload', () => {
-    subscription?.unsubscribe();
-  });
-}
+// REMOVED: Global auth state listener was causing duplicate listeners
+// Auth state is now managed by EnhancedAuthProvider only

@@ -303,18 +303,27 @@ export function EnhancedAuthProvider({ children }: AuthProviderProps) {
       }
 
       if (event === 'SIGNED_IN' && user && appSession) {
-        console.log('[Auth] User signed in, updating state and redirecting...');
+        console.log('[Auth] User signed in, updating state');
         // Update the state
         stableDispatch({ type: 'SIGN_IN', payload: { user, session: appSession } });
         
-        try {
-          console.log('[Auth] Attempting to redirect to /landing');
-          await router.push('/landing');
-          console.log('[Auth] Redirect to /landing successful');
-        } catch (redirectError) {
-          console.error('[Auth] Error during redirect:', redirectError);
-          // If redirect fails, try a full page reload
-          window.location.href = '/landing';
+        // CRITICAL FIX: Only redirect to /landing if user is on login/signup page
+        // Don't redirect if user is already on other pages (like /new-quotation)
+        // This prevents losing form data when switching tabs
+        if (typeof window !== 'undefined') {
+          const currentPath = window.location.pathname;
+          const loginPages = ['/login', '/signup', '/'];
+          
+          if (loginPages.includes(currentPath)) {
+            try {
+              console.log('[Auth] On login page, redirecting to /landing');
+              await router.push('/landing');
+            } catch (redirectError) {
+              console.error('[Auth] Error during redirect:', redirectError);
+            }
+          } else {
+            console.log('[Auth] Already on protected page, staying on:', currentPath);
+          }
         }
       } else if (event === 'SIGNED_OUT') {
         console.log('[Auth] User signed out, redirecting to login');

@@ -392,7 +392,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       // Use Next.js router for client-side navigation
       router.push('/login');
-      router.refresh(); // Ensure the page refreshes to update auth state
       
       // This return won't be reached due to the redirect, but TypeScript needs it
       return { error: null };

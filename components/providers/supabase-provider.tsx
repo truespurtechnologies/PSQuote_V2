@@ -1,11 +1,11 @@
 'use client';
 
 import { createContext, useContext, useMemo, type ReactNode } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase/client';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/supabase';
 
-// Using the singleton Supabase client from @/lib/supabase/client
+// Using the singleton Supabase client
 
 // Create a context for the Supabase client
 export const SupabaseContext = createContext(supabase);
