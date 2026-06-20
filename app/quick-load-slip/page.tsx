@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
+import { useEnhancedAuth } from "@/hooks/use-enhanced-auth";
 import { Button } from "@/components/ui/button";
 import { ItemInput } from "@/components/ui/item-input";
 import { toast } from "@/hooks/use-toast";
@@ -28,6 +29,7 @@ interface ItemRow {
 
 export default function QuickLoadSlipPage() {
   const router = useRouter();
+  const { state: { user, loading: authLoading } } = useEnhancedAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -35,6 +37,13 @@ export default function QuickLoadSlipPage() {
   const [savedSlipId, setSavedSlipId] = useState<string | null>(null);
   const [savedSlipNumber, setSavedSlipNumber] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'create' | 'view'>(() => 'create');
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/login?redirectedFrom=/quick-load-slip');
+    }
+  }, [user, authLoading, router]);
 
   // Header fields
   const [to, setTo] = useState("");
@@ -256,24 +265,72 @@ export default function QuickLoadSlipPage() {
       setError(null);
 
       // Create or update parent slip
+      // Check if user is authenticated
+      if (!user?.id) {
+        setError("You must be logged in to save a loading slip");
+        toast({ title: "Error", description: "Please log in to continue", variant: "destructive" });
+        return;
+      }
+
       let slipId = savedSlipId;
       let slipNum = savedSlipNumber || slipNumber;
       if (!slipId) {
+        // Regenerate slip number right before insert to ensure uniqueness
+        let finalSlipNumber = slipNumber;
+        try {
+          const { data: latestSlip } = await (supabase as any)
+            .from("loading_slips")
+            .select("slip_number")
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          const latest = latestSlip?.slip_number || "";
+          const match = latest.match(/^QLS-(\d+)$/);
+          const next = match ? parseInt(match[1], 10) + 1 : 1;
+          finalSlipNumber = `QLS-${next}`;
+          setSlipNumber(finalSlipNumber); // Update state for UI
+        } catch (e) {
+          console.warn("Failed to regenerate slip number, using existing", e);
+        }
+
+        const insertData = {
+          to_name: to.trim() || null,
+          phone: phone.trim() || null,
+          date: date || new Date().toISOString().slice(0, 10),
+          slip_number: finalSlipNumber,
+          total_weight: totals.totalWeight,
+          created_by: user.id,
+        };
+        
+        console.log("Attempting to insert loading slip:", {
+          insertData,
+          userObject: user,
+          userId: user?.id,
+          userIdType: typeof user?.id
+        });
+        
         const { data: slip, error: slipErr } = await (supabase as any)
           .from("loading_slips")
-          .insert({
-            to_name: to.trim() || null,
-            phone: phone.trim() || null,
-            // Use YYYY-MM-DD string; avoids timestamp vs date type mismatch
-            date: date || new Date().toISOString().slice(0, 10),
-            slip_number: slipNumber,
-            total_weight: totals.totalWeight,
-          })
+          .insert(insertData)
           .select("id, slip_number")
           .single();
         if (slipErr) {
-          console.error("Insert loading_slips failed", slipErr);
-          throw slipErr;
+          console.error("Insert loading_slips failed", {
+            error: slipErr,
+            message: slipErr?.message,
+            code: slipErr?.code,
+            details: slipErr?.details,
+            hint: slipErr?.hint,
+            user_id: user.id,
+            slip_number: slipNumber
+          });
+          setError(`Failed to save: ${slipErr?.message || 'Unknown error'}`);
+          toast({ 
+            title: "Save Failed", 
+            description: slipErr?.message || "Unknown error occurred", 
+            variant: "destructive" 
+          });
+          return;
         }
         slipId = slip.id as string;
         slipNum = slip.slip_number as string;

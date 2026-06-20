@@ -182,7 +182,7 @@ export function LoadingSlipPreview({
               <div className="text-right text-sm">
                 <div>
                   <span className="font-bold">Slip No: </span>
-                  <span className="text-blue-600 font-bold">LS-{quotationNumber.replace("QT-", "")}</span>
+                  <span className="text-blue-600 font-bold">{quotationNumber.slice(-4)}</span>
                 </div>
                 <div>
                   <span className="font-bold">Date: </span>
