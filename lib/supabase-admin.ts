@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-import type { Database } from './types/supabase'
+import type { Database } from '@/types/database.types'
 
 // Server-side admin client using the Service Role key
 // IMPORTANT: Never expose the service role key to the browser.
