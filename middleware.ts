@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import type { CookieOptions } from '@supabase/ssr'
 import { Database } from '@/lib/database.types'
+import { log } from '@/lib/logger'
 
 // Define types for better type safety
 type SupabaseClient = ReturnType<typeof createServerClient<Database>>;
@@ -82,10 +83,18 @@ export async function middleware(request: NextRequest) {
     
     // Debug logging
     const cookieNames = request.cookies.getAll().map(c => c.name);
-    console.log('[Middleware]', currentPath, '| Session:', !!session, '| Cookies:', cookieNames.filter(n => n.includes('sb-')));
+    log.debug('Middleware session check', {
+      path: currentPath,
+      hasSession: !!session,
+      authCookies: cookieNames.filter(n => n.includes('sb-')),
+      userAgent: request.headers.get('user-agent') || undefined
+    });
     
     if (sessionError) {
-      console.error('[Middleware] Session error:', sessionError.message);
+      log.error('Middleware session error', {
+        error: sessionError.message || 'Unknown session error',
+        path: currentPath
+      });
     }
     
     // Handle public paths
@@ -97,7 +106,11 @@ export async function middleware(request: NextRequest) {
       
       // If user is already logged in and tries to access other auth pages, redirect to landing
       if (['/login', '/signup'].includes(currentPath) && session) {
-        console.log('[Middleware] ✓ User logged in, redirecting', currentPath, '→ /landing');
+        log.info('User logged in, redirecting from auth page', {
+          from: currentPath,
+          to: '/landing',
+          userId: session.user.id
+        });
         return NextResponse.redirect(new URL('/landing', request.url));
       }
       return response;
@@ -105,7 +118,10 @@ export async function middleware(request: NextRequest) {
 
     // If there's no session and this is a protected route, redirect to login
     if (!session) {
-      console.log('[Middleware] ✗ No session, redirecting', currentPath, '→ /login');
+      log.info('No session, redirecting to login', {
+        from: currentPath,
+        to: '/login'
+      });
       // Don't redirect if we're already on the login or update-password page to prevent loops
       if (!['/login', '/update-password'].includes(currentPath)) {
         const loginUrl = new URL('/login', request.url);
@@ -118,7 +134,10 @@ export async function middleware(request: NextRequest) {
       return response;
     }
     
-    console.log('[Middleware] ✓ Session verified:', currentPath);
+    log.debug('Session verified, allowing access', {
+      path: currentPath,
+      userId: session.user.id
+    });
 
     // If we have a valid session, ensure we're not on auth pages (except update-password)
     if (['/login', '/signup', '/forgot-password', '/reset-password'].includes(currentPath)) {
@@ -127,7 +146,9 @@ export async function middleware(request: NextRequest) {
 
     // Redirect root path to landing page when authenticated
     if (currentPath === '/') {
-      console.log('[Middleware] ✓ Redirecting root to /landing');
+      log.info('Redirecting root to landing page', {
+        userId: session.user.id
+      });
       return NextResponse.redirect(new URL('/landing', request.url));
     }
 
@@ -144,7 +165,11 @@ export async function middleware(request: NextRequest) {
     });
     
   } catch (error) {
-    console.error('Middleware error:', error);
+    log.error('Middleware error', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      path: request.nextUrl.pathname
+    });
     // If there's an error, redirect to login with an error parameter
     const loginUrl = new URL('/login', request.url);
     loginUrl.searchParams.set('error', 'session_error');

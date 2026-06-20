@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/lib/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
+import { log } from '@/lib/logger';
 
 // Import the Database type from the generated types
 import type { Database } from '@/lib/database.types';
@@ -53,9 +54,7 @@ type ExtendedSession = Session & {
 
 // Debug function for auth context
 const debug = (message: string, ...args: unknown[]) => {
-  if (process.env.NODE_ENV === 'development') {
-    console.log(`[Auth Context] ${message}`, ...args);
-  }
+  log.debug(`Auth Context: ${message}`, { args });
 };
 
 // Constants
@@ -276,23 +275,27 @@ export function EnhancedAuthProvider({ children }: AuthProviderProps) {
     if (!isMounted.current) return;
 
     try {
-      console.log('[Auth] Auth state changed:', { event, session: !!session });
+      log.debug('Auth state changed', { 
+        event, 
+        hasSession: !!session,
+        userId: session?.user?.id 
+      });
       const appSession = mapToAppSession(session);
       const user = appSession?.user || null;
 
       if (event === 'SIGNED_IN' && user && appSession) {
-        console.log('[Auth] User signed in, updating state');
+        log.info('User signed in', { userId: user.id });
         stableDispatch({ type: 'SIGN_IN', payload: { user, session: appSession } });
         // NO automatic redirect - let components/middleware handle routing
       } else if (event === 'SIGNED_OUT') {
-        console.log('[Auth] User signed out');
+        log.info('User signed out');
         stableDispatch({ type: 'SIGN_OUT' });
         router.push('/login');
       } else if (event === 'TOKEN_REFRESHED' && appSession) {
-        console.log('[Auth] Token refreshed');
+        log.debug('Token refreshed');
         stableDispatch({ type: 'REFRESH_SESSION', payload: { session: appSession } });
       } else if (event === 'USER_UPDATED' && user && appSession) {
-        console.log('[Auth] User updated');
+        log.debug('User updated');
         stableDispatch({ type: 'SET_SESSION', payload: { user, session: appSession } });
       }
     } catch (error) {

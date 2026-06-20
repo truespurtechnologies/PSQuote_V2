@@ -4,6 +4,7 @@ import { getQuotationService, initializeQuotationService } from './supabase/quot
 import type { SavedQuotation as QuotationServiceSavedQuotation } from './supabase/quotation-service';
 import { supabase } from './supabase/client';
 import type { Database } from '@/lib/database.types';
+import { log } from '@/lib/logger';
 
 // Re-export the SavedQuotation type for backward compatibility
 export type SavedQuotation = QuotationServiceSavedQuotation;
@@ -20,7 +21,7 @@ export const initializeQuotationDB = async (): Promise<boolean> => {
     const { data: { session }, error } = await supabase.auth.getSession();
     
     if (error || !session) {
-      console.warn('No active session found, using local storage only');
+      log.warn('No active session found, using local storage only');
       isInitialized = true; // Mark as initialized to prevent repeated attempts
       return false;
     }
@@ -31,7 +32,7 @@ export const initializeQuotationDB = async (): Promise<boolean> => {
     isInitialized = true;
     return true;
   } catch (error) {
-    console.error('Failed to initialize QuotationDB:', error);
+    log.error('Failed to initialize QuotationDB', { error });
     isInitialized = false;
     return false;
   }

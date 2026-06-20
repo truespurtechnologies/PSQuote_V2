@@ -61,11 +61,11 @@ This document lists all product display prefixes used in the system for POS load
 | BR-SQ | MS Bright Bar Square | MS Bright Bar |
 | CH | MS Channel | MS Structurals |
 | CP | Cut Plate | Cut Plate |
-| CRS | CR Sheet | Sheets |
+| Sh | CR Sheet | Sheets |
 | FL | MS Flat | MS Flat |
 | GEN | Generic Product | Generic |
-| GI | GI Sheet | Sheets |
-| HRS | HR Sheet | Sheets |
+| Sh | GI Sheet | Sheets |
+| Sh | HR Sheet | Sheets |
 | MSIB | MS I Beam | MS Structurals |
 | P-CHS | MS Pipe CHS | MS Pipe |
 | P-RHS | MS Pipe RHS | MS Pipe |

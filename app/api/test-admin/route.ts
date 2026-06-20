@@ -1,19 +1,29 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase-admin'
+import { log } from '@/lib/logger'
+import { rateLimiters } from '@/lib/rate-limit'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
+export async function GET(request: Request) {
+  // Apply rate limiting
+  const rateLimitResult = await rateLimiters.api(request);
+  if (!rateLimitResult.success) {
+    return rateLimitResult.response;
+  }
+
   try {
-    console.log('[test-admin] Testing admin client...')
+    log.info('Testing admin client...');
     
     // Check environment variables
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL
     const key = process.env.SUPABASE_SERVICE_ROLE_KEY
     
-    console.log('[test-admin] URL exists:', !!url)
-    console.log('[test-admin] Service key exists:', !!key)
+    log.debug('Environment variables check', {
+      hasUrl: !!url,
+      hasServiceKey: !!key
+    });
     
     if (!url || !key) {
       return NextResponse.json({ 

@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
+import { log } from '@/lib/logger'
+import { rateLimiters } from '@/lib/rate-limit'
 
 // Ensure this route uses the Node.js runtime (required to access secure env vars)
 export const runtime = 'nodejs'
@@ -19,55 +21,60 @@ const createUserSchema = z.object({
 })
 
 // GET /api/users
-export async function GET() {
+export async function GET(request: Request) {
+  // Apply rate limiting
+  const rateLimitResult = await rateLimiters.users(request);
+  if (!rateLimitResult.success) {
+    return rateLimitResult.response;
+  }
+
   try {
-    console.log('[GET /api/users] Starting request...')
+    log.info('Starting users API request');
     
     // Validate required environment variables in production
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
     
-    console.log('[GET /api/users] Environment check:', {
+    log.debug('Environment variables check', {
       hasUrl: !!url,
       hasServiceRoleKey: !!serviceKey,
       nodeEnv: process.env.NODE_ENV,
     })
     
     if (!url || !serviceKey) {
-      console.error('[GET /api/users] Missing environment variables')
+      log.error('Missing environment variables for users API');
       return NextResponse.json({ error: 'Server is missing required configuration' }, { status: 500 })
     }
 
-    console.log('[GET /api/users] Creating admin client...')
+    log.debug('Creating admin client for users API');
     const admin = createAdminClient()
-    console.log('[GET /api/users] Admin client created successfully')
+    log.debug('Admin client created successfully');
 
     // 1) List auth users (paginate if needed)
-    console.log('[GET /api/users] Fetching auth users...')
+    log.debug('Fetching auth users');
     const { data: usersPage, error: adminErr } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 })
     if (adminErr) {
-      console.error('[GET /api/users] admin.listUsers error:', adminErr)
+      log.error('Failed to list auth users', { error: adminErr });
       return NextResponse.json({ error: 'Failed to list users', details: adminErr }, { status: 500 })
     }
 
     const authUsers = usersPage?.users || []
-    console.log('[GET /api/users] Found', authUsers.length, 'auth users')
+    log.info('Found auth users', { count: authUsers.length });
     const ids = authUsers.map(u => u.id)
 
     // 2) Fetch profiles for those IDs
     let profilesById = new Map<string, any>()
     if (ids.length > 0) {
-      console.log('[GET /api/users] Fetching profiles for', ids.length, 'users')
+      log.debug('Fetching profiles for users', { userCount: ids.length });
       const { data: profiles, error: profErr } = await admin
         .from('profiles')
         .select('*')
         .in('id', ids)
-
       if (profErr) {
-        console.error('[GET /api/users] profiles query error:', profErr)
+        log.error('Failed to query profiles', { error: profErr });
         return NextResponse.json({ error: 'Failed to query profiles', details: profErr }, { status: 500 })
       }
-      console.log('[GET /api/users] Found', profiles?.length || 0, 'profiles')
+      log.info('Found user profiles', { count: profiles?.length || 0 });
       for (const p of profiles || []) profilesById.set(p.id, p)
     }
 
@@ -94,14 +101,13 @@ export async function GET() {
       } as AppUser
     })
 
-    console.log('[GET /api/users] Successfully mapped', result.length, 'users')
+    log.info('Successfully mapped users data', { userCount: result.length });
     return NextResponse.json({ users: result })
   } catch (error: any) {
-    console.error('[GET /api/users] Unexpected error:', {
-      message: error?.message,
-      stack: error?.stack,
-      error: error
-    })
+    log.error('Unexpected error in users API', {
+      error: error?.message || 'Unknown error',
+      stack: error?.stack
+    });
     return NextResponse.json({ 
       error: 'Unexpected server error',
       message: error?.message || 'Unknown error'
@@ -112,6 +118,12 @@ export async function GET() {
 // POST /api/users
 // Body: { username, name, email, role, status, password }
 export async function POST(request: Request) {
+  // Apply rate limiting
+  const rateLimitResult = await rateLimiters.users(request);
+  if (!rateLimitResult.success) {
+    return rateLimitResult.response;
+  }
+
   try {
     const admin = createAdminClient()
     const body = await request.json()
@@ -152,7 +164,7 @@ export async function POST(request: Request) {
       email_confirm: true,
     })
     if (createErr) {
-      console.error('admin.createUser error:', createErr)
+      log.error('Failed to create auth user', { error: createErr });
       return NextResponse.json({ error: 'Failed to create user' }, { status: 500 })
     }
     const authUser = created?.user
@@ -175,7 +187,7 @@ export async function POST(request: Request) {
         updated_at: new Date().toISOString(),
       }, { onConflict: 'id' })
     if (profUpErr) {
-      console.error('profiles upsert error:', profUpErr)
+      log.error('Failed to upsert user profile', { error: profUpErr });
       return NextResponse.json({ error: 'Failed to upsert profile' }, { status: 500 })
     }
 
@@ -186,7 +198,7 @@ export async function POST(request: Request) {
       .eq('id', userId)
       .single()
     if (profErr) {
-      console.error('profiles fetch error:', profErr)
+      log.error('Failed to fetch user profile', { error: profErr });
       return NextResponse.json({ error: 'Failed to fetch profile' }, { status: 500 })
     }
 
@@ -203,7 +215,10 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ user: appUser }, { status: 201 })
   } catch (error) {
-    console.error('POST /api/users error:', error)
+    log.error('Unexpected error in POST users API', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
+    });
     return NextResponse.json({ error: 'Unexpected server error' }, { status: 500 })
   }
 }
