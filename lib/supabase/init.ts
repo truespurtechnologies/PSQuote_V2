@@ -16,8 +16,7 @@ export function initializeSupabaseServices() {
     }
     
     // Initialize all services that depend on Supabase
-    // Type assertion needed due to minor type differences between generated types
-    initializeQuotationService(supabase as any);
+    initializeQuotationService(supabase);
     
     isInitialized = true;
     console.log('Supabase services initialized successfully');

@@ -1,5 +1,5 @@
-import { SupabaseClient } from '@supabase/supabase-js';
-import { Database } from '../../types/database.types';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from '../../types/database.types';
 
 // Define the QuotationItem interface
 export interface QuotationItem {
@@ -325,7 +325,8 @@ export class QuotationService {
 let quotationService: QuotationService;
 
 // Export a function to initialize the service with a Supabase client
-export function initializeQuotationService(supabaseClient: SupabaseClient<Database>) {
+// Accept any client that has the Database type structure (handles both SSR and regular clients)
+export function initializeQuotationService(supabaseClient: SupabaseClient<Database> | any) {
   if (!quotationService) {
     quotationService = QuotationService.getInstance(supabaseClient);
   }
