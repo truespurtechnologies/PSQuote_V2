@@ -500,7 +500,11 @@ export default function NewQuotationPage() {
     if (isFormModified && !hasBeenSaved) {
       setShowUnsavedChangesDialog(true);
     } else {
-      // No unsaved changes, navigate directly
+      // If quotation was saved, reset form before navigating
+      if (hasBeenSaved) {
+        resetForm();
+      }
+      // Navigate to landing page
       router.push('/landing');
     }
   };

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { initializeSupabaseServices } from '@/lib/supabase/init';
 import { Toaster } from '@/components/ui/toaster';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 export default function ClientLayout({
   children,
@@ -50,9 +51,9 @@ export default function ClientLayout({
   }
 
   return (
-    <>
+    <ErrorBoundary>
       {children}
       <Toaster />
-    </>
+    </ErrorBoundary>
   );
 }

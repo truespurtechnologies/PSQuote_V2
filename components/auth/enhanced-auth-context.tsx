@@ -287,16 +287,7 @@ export function EnhancedAuthProvider({ children }: AuthProviderProps) {
       } else if (event === 'SIGNED_OUT') {
         console.log('[Auth] User signed out');
         stableDispatch({ type: 'SIGN_OUT' });
-        // Only redirect if not already redirecting and not on public page
-        if (!isRedirecting.current && typeof window !== 'undefined') {
-          const currentPath = window.location.pathname;
-          const publicPages = ['/login', '/signup', '/forgot-password', '/reset-password', '/update-password'];
-          if (!publicPages.includes(currentPath)) {
-            isRedirecting.current = true;
-            router.push('/login');
-            setTimeout(() => { isRedirecting.current = false; }, 1000);
-          }
-        }
+        router.push('/login');
       } else if (event === 'TOKEN_REFRESHED' && appSession) {
         console.log('[Auth] Token refreshed');
         stableDispatch({ type: 'REFRESH_SESSION', payload: { session: appSession } });
@@ -313,56 +304,8 @@ export function EnhancedAuthProvider({ children }: AuthProviderProps) {
     }
   }, [router, stableDispatch]);
 
-  // Tab visibility change handler - verify session when tab becomes visible
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const handleVisibilityChange = async () => {
-      if (document.visibilityState === 'visible' && state.user) {
-        console.log('[Auth] Tab became visible, verifying session');
-        try {
-          const { data: { session }, error } = await supabaseClient.auth.getSession();
-          if (error) throw error;
-          
-          if (!session && state.user) {
-            console.log('[Auth] Session expired while tab was hidden');
-            dispatch({ type: 'SIGN_OUT' });
-            if (!isRedirecting.current) {
-              isRedirecting.current = true;
-              router.push('/login');
-              setTimeout(() => { isRedirecting.current = false; }, 1000);
-            }
-          }
-        } catch (error) {
-          console.error('[Auth] Error verifying session on visibility change:', error);
-        }
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [state.user, router]);
-
-  // Cross-tab session synchronization
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const handleStorageChange = (e: StorageEvent) => {
-      // Check if auth token was removed (user logged out in another tab)
-      if (e.key?.startsWith('sb-') && e.newValue === null && state.user) {
-        console.log('[Auth] User logged out in another tab');
-        dispatch({ type: 'SIGN_OUT' });
-        if (!isRedirecting.current) {
-          isRedirecting.current = true;
-          router.push('/login');
-          setTimeout(() => { isRedirecting.current = false; }, 1000);
-        }
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, [state.user, router]);
+  // Note: Removed redundant visibilitychange and storage listeners
+  // Supabase SSR already handles cross-tab sync and session refresh automatically
 
   // Set up the auth state change listener
   useEffect(() => {
