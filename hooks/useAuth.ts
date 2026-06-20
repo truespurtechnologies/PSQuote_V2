@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useCallback, useReducer } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase, getCurrentSession, refreshSession } from '@/lib/supabase/client';
-import { AuthState, initialAuthState, authReducer, AppSession, AppUser } from '@/types/auth';
+import { supabase, getCurrentSession, refreshSession } from '../lib/supabase/client';
+import { AuthState, initialAuthState, authReducer, AppSession, AppUser } from '../types/auth';
 
 // Helper function to convert UserProfile to AppSession
 function convertToAppSession(userProfile: any): AppSession | null {

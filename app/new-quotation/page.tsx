@@ -7,22 +7,22 @@ export const dynamic = 'force-dynamic'
 
 import { useState, useEffect, useRef, useCallback } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { toast } from "@/components/ui/use-toast"
-import { supabase } from "@/lib/supabase/client"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
+import { toast } from "../../components/ui/use-toast"
+import { supabase } from "../../lib/supabase/client"
+import { Button } from "../../components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card"
+import { Input } from "../../components/ui/input"
 import { ArrowLeft, Save, Plus, Trash2, FileText, Eye, Printer, Truck, Receipt, Loader2, RotateCcw } from "lucide-react"
-import { Label } from "@/components/ui/label"
-import { ItemInput } from "@/components/ui/item-input"
-import { QuotationPreview } from "@/components/quotation-preview"
-import { LoadingSlipPreview } from "@/components/loading-slip-preview"
-import { POSQuotationPreview } from "@/components/pos-quotation-preview"
-import { POSLoadingSlipPreview } from "@/components/pos-loading-slip-preview"
-import { QuotationItemsTable } from "@/components/quotation-items-table"
-import { useAuth } from "@/components/auth/enhanced-auth-context"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
-import type { TablesInsert, Tables } from "@/lib/database.types"
+import { Label } from "../../components/ui/label"
+import { ItemInput } from "../../components/ui/item-input"
+import { QuotationPreview } from "../../components/quotation-preview"
+import { LoadingSlipPreview } from "../../components/loading-slip-preview"
+import { POSQuotationPreview } from "../../components/pos-quotation-preview"
+import { POSLoadingSlipPreview } from "../../components/pos-loading-slip-preview"
+import { QuotationItemsTable } from "../../components/quotation-items-table"
+import { useAuth } from "../../components/auth/enhanced-auth-context"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../../components/ui/dialog"
+import type { TablesInsert, Tables } from "../../lib/database.types"
 
 interface QuotationItem {
   id: string
@@ -397,10 +397,12 @@ export default function NewQuotationPage() {
     const totalWeight = items.reduce((sum, item) => sum + item.totalQtyKg, 0)
     const basicTotal = items.reduce((sum, item) => sum + item.totalValue, 0)
     const afterLoading = basicTotal + charges.loading
+    // GST calculated on (basic total + loading charges)
     const gstAmount = (afterLoading * charges.gstRate) / 100
     const beforeRounding = afterLoading + gstAmount
-    const finalTotal = Math.round(beforeRounding)
-    const roundOff = finalTotal - beforeRounding
+    // Use toFixed(2) for consistent decimal display instead of Math.round()
+    const finalTotal = parseFloat(beforeRounding.toFixed(2))
+    const roundOff = parseFloat((finalTotal - beforeRounding).toFixed(2))
 
     return {
       totalWeight,
@@ -602,7 +604,7 @@ export default function NewQuotationPage() {
       
       // Calculate totals for DB (Option A):
       // subtotal = sum of item totals (basic only, no loading)
-      // gst_amount = (subtotal + loading) * gst_rate
+      // gst_amount = (subtotal + loading) * gst_rate (GST on subtotal + loading)
       // grand_total = subtotal + loading + gst_amount + round_off
       const basicTotalFromItems = items.reduce((sum, item) => {
         const totalQtyKg = (item.requiredQty || 0) * (item.qtyInKgPc || 0);
@@ -611,6 +613,7 @@ export default function NewQuotationPage() {
       }, 0);
 
       const subtotal = basicTotalFromItems;
+      // GST calculated on (subtotal + loading charges)
       const taxableBase = subtotal + (charges.loading || 0);
       const gstAmount = taxableBase * ((charges.gstRate || 18) / 100);
       const grandTotal = subtotal + (charges.loading || 0) + gstAmount + (charges.roundOff || 0);
@@ -641,8 +644,17 @@ export default function NewQuotationPage() {
       
       // Insert or Update quotation
       let targetQuotationId: string | null = null;
+      
       if (editId) {
         // Update existing quotation (preserve quotation_number)
+        console.log('[quotations] Updating existing quotation:', editId);
+        console.log('[quotations] Update data:', {
+          customer_name: quotationToSave.customer_name,
+          grand_total: quotationToSave.grand_total,
+          status: quotationToSave.status,
+          created_by: quotationToSave.created_by,
+        });
+        
         const { data: updated, error: updateErr } = await supabase
           .from('quotations')
           .update({
@@ -665,15 +677,50 @@ export default function NewQuotationPage() {
             created_by: quotationToSave.created_by,
           })
           .eq('id', editId)
-          .select('id, quotation_number')
+          .select('id, quotation_number, customer_name, customer_phone, customer_id, company_name, account_no, bank_name, ifsc_code, date, subtotal, loading_charges, gst_rate, gst_amount, round_off, grand_total, status, terms_conditions, created_by, updated_at')
           .single();
+          
+        console.log('[quotations] Update result:', { data: updated, error: updateErr });
+        
         if (updateErr) {
           console.error('[quotations.update] error:', updateErr);
+          console.error('[quotations.update] Full error:', JSON.stringify(updateErr, null, 2));
           throw new Error(`[quotations.update] ${((updateErr as any)?.code || '')} ${(updateErr as any)?.message || 'Unknown error'}`);
         }
+        
+        console.log('[quotations] Successfully updated quotation:', updated);
         targetQuotationId = updated?.id ?? editId;
+        
+        // Update local form state to reflect the saved data
+        setQuotationData(prev => ({
+          ...prev,
+          to: updated?.customer_name || prev.to,
+          date: updated?.date || prev.date
+        }));
+        
+        // Update totals to reflect saved values
+        if (updated?.subtotal !== undefined || updated?.grand_total !== undefined) {
+          // Recalculate totals based on saved data
+          const currentTotals = calculateTotals();
+          const basicTotal = currentTotals.basicTotal;
+          const gstAmount = updated?.gst_amount || currentTotals.gstAmount;
+          const grandTotal = updated?.grand_total || currentTotals.finalTotal;
+          
+          // Update charges if database values are different
+          // Update all charges in one go to ensure consistency
+          setCharges(prev => ({
+            ...prev,
+            loading: updated?.loading_charges !== undefined ? updated.loading_charges : prev.loading,
+            gstRate: updated?.gst_rate !== undefined ? updated.gst_rate : prev.gstRate,
+            roundOff: updated?.round_off !== undefined ? updated.round_off : prev.roundOff,
+            // Recalculate derived values
+            gstAmount: updated?.gst_amount || 0,
+            grandTotal: updated?.grand_total || 0
+          }));
+        }
       } else {
         // Attempt insert, and on unique violation retry once with a newly allocated number
+        console.log('[DEBUG] Taking INSERT path (not update) - editId was falsy');
         let insertData: any = { ...quotationToSave };
         // Ensure we do NOT send quotation_number so DB trigger can allocate it
         delete insertData.quotation_number;
@@ -748,23 +795,29 @@ export default function NewQuotationPage() {
         if (itemsToSave.length > 0) {
           if (editId) {
             // Replace existing items for this quotation id
-            const { error: delErr } = await supabase
+            console.log('[quotation_items] Deleting existing items for quotation:', targetQuotationId);
+            const { error: delErr, data: deletedData } = await supabase
               .from('quotation_items')
               .delete()
               .eq('quotation_id', targetQuotationId);
+            console.log('[quotation_items] Delete result:', { error: delErr, data: deletedData });
             if (delErr) {
               console.error('[quotation_items.delete] error:', delErr);
               throw new Error(`[quotation_items.delete] ${((delErr as any)?.code || '')} ${(delErr as any)?.message || 'Unknown error'}`);
             }
+            console.log('[quotation_items] Successfully deleted existing items');
           }
           
           console.log('[quotation_items] Attempting to insert:', itemsToSave);
           console.log('[quotation_items] Target quotation ID:', targetQuotationId);
           console.log('[quotation_items] User ID:', user?.id);
           
-          const { error: itemsError } = await supabase
+          const { error: itemsError, data: insertedItems } = await supabase
             .from('quotation_items')
-            .insert(itemsToSave);
+            .insert(itemsToSave)
+            .select();
+            
+          console.log('[quotation_items] Insert result:', { data: insertedItems, error: itemsError });
             
           if (itemsError) {
             console.error('[quotation_items.insert] Full error object:', itemsError);
@@ -775,6 +828,8 @@ export default function NewQuotationPage() {
             console.error('[quotation_items.insert] Error stringified:', JSON.stringify(itemsError, null, 2));
             throw new Error(`[quotation_items.insert] ${((itemsError as any)?.code || '')} ${(itemsError as any)?.message || 'Unknown error'}`);
           }
+          
+          console.log('[quotation_items] Successfully inserted items:', insertedItems?.length || 0);
         }
       }
       
@@ -798,8 +853,9 @@ export default function NewQuotationPage() {
       if (shouldReset) {
         resetForm();
       } else if (editId) {
-        // If in edit mode, update the URL to remove the edit ID
-        router.push('/new-quotation');
+        // If in edit mode, keep the user on the edit page
+        // Don't redirect - let them continue editing or navigate away manually
+        console.log('[DEBUG] Edit mode: staying on edit page after save');
       }
       
     } catch (err) {
@@ -1038,6 +1094,7 @@ export default function NewQuotationPage() {
 
 
   if (showPreview) {
+    
     return (
       <div className="min-h-screen bg-gray-100">
         <div className="bg-white p-4 shadow-md print:hidden">

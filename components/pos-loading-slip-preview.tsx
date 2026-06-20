@@ -42,46 +42,31 @@ export function POSLoadingSlipPreview({
     // Check if this is a roofing sheet (prefix is ROOF)
     const isRoof = item.displayPrefix === 'ROOF';
     
-    console.log('[POS Loading Slip] Item:', {
-      description: item.description,
-      displayPrefix: item.displayPrefix,
-      itemSize: item.itemSize,
-      isPipe,
-      isRoof
-    });
-    
+        
     // If we have display_prefix and item_size
     if (item.displayPrefix && item.itemSize) {
       // For pipes, show only size (no prefix)
       if (isPipe) {
-        const result = item.itemSize;
-        console.log('[POS Loading Slip] Pipe - returning:', result);
-        return result;
+        return item.itemSize;
       }
       // For roofing sheets, extract only the ft value (e.g., "1.5ft" from "PPGI-0.47-1.5ft")
       if (isRoof) {
         const ftMatch = item.itemSize.match(/([0-9.]+ft)$/i);
         if (ftMatch) {
-          const result = `${item.displayPrefix} ${ftMatch[1]}`;
-          console.log('[POS Loading Slip] Roof - returning:', result);
-          return result;
+          return `${item.displayPrefix} ${ftMatch[1]}`;
         }
       }
       // For other products, show prefix + size
-      const result = `${item.displayPrefix} ${item.itemSize}`;
-      console.log('[POS Loading Slip] Other - returning:', result);
-      return result;
+      return `${item.displayPrefix} ${item.itemSize}`;
     }
     
     // Fallback: extract size from description
     const sizeMatch = item.description.match(/([0-9]+x[0-9]+(?:x[0-9.]+)?(?:\s*(?:MM|M|CM|KG|PC|ODx|OD|x))?[0-9.]*(?:\s*(?:MM|M|CM|ft))?)/i);
     if (sizeMatch) {
-      console.log('[POS Loading Slip] Fallback regex - returning:', sizeMatch[1]);
       return sizeMatch[1];
     }
     
     // Last resort: return full description
-    console.log('[POS Loading Slip] Last resort - returning full description:', item.description);
     return item.description;
   };
   return (
@@ -245,7 +230,6 @@ export function POSLoadingSlipPreview({
         </div>
 
         <div className="pos-divider"></div>
-        {/* Total Weight removed */}
 
         {/* Footer */}
         <div className="text-center text-base" style={{ marginTop: '6mm' }}>

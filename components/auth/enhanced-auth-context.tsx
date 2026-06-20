@@ -2,13 +2,13 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useToast } from '@/components/ui/use-toast';
-import { supabase } from '@/lib/supabase/client';
+import { useToast } from '../ui/use-toast';
+import { supabase } from '../../lib/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
-import { log } from '@/lib/logger';
+import { log } from '../../lib/logger';
 
 // Import the Database type from the generated types
-import type { Database } from '@/lib/database.types';
+import type { Database } from '../../lib/database.types';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 // Create a properly typed Supabase client instance

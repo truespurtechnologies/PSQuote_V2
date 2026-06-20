@@ -1,8 +1,8 @@
 'use client';
 
 import './globals.css';
-import { SupabaseProvider } from '@/components/providers/supabase-provider';
-import { EnhancedAuthProvider } from '@/components/auth/enhanced-auth-context';
+import { SupabaseProvider } from '../components/providers/supabase-provider';
+import { EnhancedAuthProvider } from '../components/auth/enhanced-auth-context';
 import ClientLayout from './client-layout';
 import { Analytics } from '@vercel/analytics/next';
 

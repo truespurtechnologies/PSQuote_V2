@@ -1,5 +1,5 @@
 import { User } from '@supabase/supabase-js';
-import { AppUser, UserMetadata } from '@/types/auth';
+import { AppUser, UserMetadata } from '../../types/auth';
 
 export function mapToAppUser(user: User | null): AppUser {
   if (!user) {

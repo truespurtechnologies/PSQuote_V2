@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import { Skeleton } from "@/components/ui/skeleton"
+import { Skeleton } from "../../components/ui/skeleton"
 import { SettingsContent } from './SettingsContent';
 
 export default function SettingsPage() {

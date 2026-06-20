@@ -1,6 +1,6 @@
-import { Product, NewProduct } from "@/types/product";
+import { Product, NewProduct } from "../types/product";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import { Database } from "@/types/supabase";
+import { Database } from "../types/supabase";
 
 export const fetchProducts = async ({
   supabase,

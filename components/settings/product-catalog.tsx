@@ -1,8 +1,8 @@
 // External Dependencies
 import React, { useState, useEffect, useCallback, useMemo, memo } from 'react';
-import { useToast } from '@/components/ui/use-toast';
-import { supabase } from '@/lib/supabase/client';
-import { Button } from '@/components/ui/button';
+import { useToast } from '../../components/ui/use-toast';
+import { supabase } from '../../lib/supabase/client';
+import { Button } from '../../components/ui/button';
 
 // Add JSX namespace
 declare global {
@@ -13,13 +13,13 @@ declare global {
     interface Element extends React.ReactElement {}
   }
 }
-import { Input } from '@/components/ui/input';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Switch } from "@/components/ui/switch";
+import { Input } from '../../components/ui/input';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../components/ui/table";
+import { Switch } from "../../components/ui/switch";
 import { Loader2, Plus, Trash2, X, Check, Pencil, Save } from "lucide-react";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Card, CardContent } from "@/components/ui/card";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../../components/ui/dialog";
+import { Card, CardContent } from "../../components/ui/card";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "../../components/ui/alert-dialog";
 import debounce from 'lodash.debounce';
 
 // Type Definitions

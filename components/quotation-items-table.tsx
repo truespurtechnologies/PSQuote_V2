@@ -1,6 +1,6 @@
-import { ItemInput } from "@/components/ui/item-input";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { ItemInput } from "./ui/item-input"
+import { Input } from "./ui/input"
+import { Button } from "./ui/button"
 import { Trash2 } from "lucide-react";
 import { useState } from "react";
 

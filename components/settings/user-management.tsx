@@ -1,16 +1,16 @@
 import { useState, useCallback, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Button } from "../../components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../components/ui/table"
 import { Plus, Edit, Trash2, UserPlus, Loader2, Save, X } from "lucide-react"
-import { Input } from "@/components/ui/input"
-import { Switch } from "@/components/ui/switch"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Input } from "../../components/ui/input"
+import { Switch } from "../../components/ui/switch"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../../components/ui/dialog"
 import { DialogClose } from "@radix-ui/react-dialog"
 import { toast } from "sonner"
 import { UserModal } from "./user-modal"
 // Users will be loaded from API: /api/users
-import type { AppUser, EditableUserField, EditState, UserInput } from "@/lib/types/user"
+import type { AppUser, EditableUserField, EditState, UserInput } from "../../lib/types/user"
 
 interface UserManagementProps {
   // Add any props if needed

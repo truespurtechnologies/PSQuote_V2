@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { toast } from '@/components/ui/use-toast';
-import { supabase } from '@/lib/supabase/client';
+import { toast } from '../components/ui/use-toast';
+import { supabase } from '../lib/supabase/client';
 
 /**
  * Simple debounce function to limit how often a function can be called

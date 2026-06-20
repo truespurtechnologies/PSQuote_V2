@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { initializeSupabaseServices } from '@/lib/supabase/init';
+// import { initializeSupabaseServices } from '../lib/supabase/init';
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [isInitialized, setIsInitialized] = useState(false);
@@ -13,7 +13,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const init = async () => {
       try {
-        await initializeSupabaseServices();
+        // await initializeSupabaseServices();
         setIsInitialized(true);
       } catch (err) {
         console.error('Failed to initialize Supabase services:', err);

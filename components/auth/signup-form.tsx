@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/hooks/use-enhanced-auth';
+import { useAuth } from '../../hooks/use-enhanced-auth';
 
 export function SignupForm() {
   const [email, setEmail] = useState('');

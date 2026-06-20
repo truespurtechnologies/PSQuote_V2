@@ -15,8 +15,14 @@ interface RateLimitResult {
   resetTime: number;
 }
 
-// In-memory storage for rate limits (for development)
+// In-memory storage for rate limits with automatic cleanup
 const rateLimitStore = new Map<string, RateLimitRecord>();
+const CLEANUP_INTERVAL = 5 * 60 * 1000; // 5 minutes
+
+// Automatic cleanup to prevent memory leaks
+setInterval(() => {
+  cleanupExpiredRecords();
+}, CLEANUP_INTERVAL);
 
 /**
  * Clean up expired rate limit records
@@ -127,20 +133,49 @@ export async function rateLimit(
  * Get default identifier from request
  */
 function getDefaultIdentifier(request: Request): string {
-  // Try to get IP address from headers
-  const forwardedFor = request.headers.get('x-forwarded-for');
-  const realIp = request.headers.get('x-real-ip');
+  // Try to get IP address from headers in order of preference
   const cfConnectingIp = request.headers.get('cf-connecting-ip'); // Cloudflare
+  const realIp = request.headers.get('x-real-ip');
+  const forwardedFor = request.headers.get('x-forwarded-for');
   
-  let ip = realIp || cfConnectingIp || forwardedFor?.split(',')[0]?.trim() || 'unknown';
+  let ip = cfConnectingIp || realIp;
   
-  // If no IP, use user agent as fallback
-  if (ip === 'unknown') {
-    const userAgent = request.headers.get('user-agent') || 'no-agent';
-    ip = `no-ip-${userAgent.slice(0, 20)}`;
+  if (forwardedFor) {
+    // x-forwarded-for can contain multiple IPs, take the first one
+    ip = forwardedFor.split(',')[0].trim();
   }
   
-  return ip;
+  // Validate IP format
+  if (ip && isValidIp(ip)) {
+    return ip;
+  }
+  
+  // Fallback to user agent hash for privacy
+  const userAgent = request.headers.get('user-agent') || 'no-agent';
+  const hash = simpleHash(userAgent + request.url);
+  return `hashed-${hash}`;
+}
+
+function isValidIp(ip: string): boolean {
+  // Basic IPv4 validation
+  const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}$/;
+  if (ipv4Regex.test(ip)) {
+    return ip.split('.').every(octet => parseInt(octet, 10) >= 0 && parseInt(octet, 10) <= 255);
+  }
+  
+  // Basic IPv6 validation (simplified)
+  const ipv6Regex = /^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$/;
+  return ipv6Regex.test(ip);
+}
+
+function simpleHash(str: string): string {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32-bit integer
+  }
+  return Math.abs(hash).toString(16);
 }
 
 /**
@@ -176,13 +211,13 @@ export function createRateLimitMiddleware(config: RateLimitConfig) {
 
     return {
       success: true,
-      response: {
+      response: new Response(null, {
         headers: {
           'X-RateLimit-Limit': result.limit.toString(),
           'X-RateLimit-Remaining': result.remaining.toString(),
           'X-RateLimit-Reset': result.resetTime.toString(),
         }
-      }
+      })
     };
   };
 }

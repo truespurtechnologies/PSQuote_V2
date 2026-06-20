@@ -2,13 +2,13 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase/client";
-import { useEnhancedAuth } from "@/hooks/use-enhanced-auth";
-import { Button } from "@/components/ui/button";
-import { ItemInput } from "@/components/ui/item-input";
-import { toast } from "@/hooks/use-toast";
-import { LoadingSlipPreview } from "@/components/loading-slip-preview";
-import { POSLoadingSlipPreview } from "@/components/pos-loading-slip-preview";
+import { supabase } from "../../lib/supabase/client";
+import { useEnhancedAuth } from "../../hooks/use-enhanced-auth";
+import { Button } from "../../components/ui/button";
+import { ItemInput } from "../../components/ui/item-input";
+import { toast } from "../../hooks/use-toast";
+import { LoadingSlipPreview } from "../../components/loading-slip-preview";
+import { POSLoadingSlipPreview } from "../../components/pos-loading-slip-preview";
 import { ArrowLeft, Printer, Truck, Receipt, Trash2, Eye, Pencil } from "lucide-react";
 
 // Types aligned with existing preview components
@@ -16,6 +16,8 @@ interface Product {
   id: string;
   item_name: string;
   item_weight: number; // kg per pc
+  display_prefix?: string;
+  item_size?: string;
 }
 
 interface ItemRow {
@@ -74,7 +76,7 @@ export default function QuickLoadSlipPage() {
       try {
         const { data, error } = await supabase
           .from("products")
-          .select("id, item_name, item_weight")
+          .select("id, item_name, item_weight, display_prefix, item_size")
           .order("item_name", { ascending: true });
         if (error) throw error;
         setProducts((data || []) as Product[]);
@@ -258,6 +260,42 @@ export default function QuickLoadSlipPage() {
 
   const hasValidItems = rows.some((r) => r.description.trim() !== "" && r.requiredQty > 0);
 
+  // Helper function to enrich items with product data for POS display
+  const enrichItemsWithProductData = (items: any[]) => {
+    return items.map(item => {
+      let product = null;
+      
+      // First, try to match by productId
+      if (item.productId) {
+        product = products.find(p => p.id === item.productId);
+      }
+      
+      // If no productId or not found, try to match by description (case-insensitive)
+      if (!product && item.description) {
+        // Normalize both descriptions: lowercase, trim, and normalize multiple spaces
+        const normalizeDesc = (desc: string) => desc.toLowerCase().trim().replace(/\s+/g, ' ');
+        const itemDescNormalized = normalizeDesc(item.description);
+        
+        product = products.find(p => {
+          const productDescNormalized = normalizeDesc(p.item_name);
+          return productDescNormalized === itemDescNormalized;
+        });
+      }
+      
+      // If product found, enrich with display data
+      if (product) {
+        return {
+          ...item,
+          displayPrefix: product.display_prefix,
+          itemSize: product.item_size,
+          productId: product.id // Also set productId for future reference
+        };
+      }
+      
+      return item;
+    });
+  };
+
   // Save to Supabase
   const saveSlip = async () => {
     try {
@@ -393,17 +431,19 @@ export default function QuickLoadSlipPage() {
   // Removed implicit persist on preview. Previews are enabled only after a successful save.
 
   // Map to preview props
-  const previewItems = rows
-    .filter((r) => r.description.trim() !== "")
-    .map((r) => ({
-      id: r.id,
-      description: r.description,
-      requiredQty: r.requiredQty || 0,
-      qtyInKgPc: r.qtyInKgPc || 0,
-      totalQtyKg: r.totalQtyKg || 0,
-      unitRate: 0,
-      totalValue: 0,
-    }));
+  const previewItems = enrichItemsWithProductData(
+    rows
+      .filter((r) => r.description.trim() !== "")
+      .map((r) => ({
+        id: r.id,
+        description: r.description,
+        requiredQty: r.requiredQty || 0,
+        qtyInKgPc: r.qtyInKgPc || 0,
+        totalQtyKg: r.totalQtyKg || 0,
+        unitRate: 0,
+        totalValue: 0,
+      }))
+  );
 
   const quotationData = {
     to,
@@ -505,7 +545,7 @@ export default function QuickLoadSlipPage() {
           <POSLoadingSlipPreview
             quotationData={{ to, phone, date, companyName }}
             items={previewItems}
-            totals={{ totalWeight: totals.totalWeight }}
+            totals={totals}
             quotationNumber={savedSlipNumber || slipNumber}
           />
         </div>

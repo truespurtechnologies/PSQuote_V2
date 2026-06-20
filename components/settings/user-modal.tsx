@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
+import { Button } from "../../components/ui/button"
 import {
   Dialog,
   DialogContent,
@@ -7,19 +7,19 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+} from "../../components/ui/dialog"
+import { Input } from "../../components/ui/input"
+import { Label } from "../../components/ui/label"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import { Switch } from "@/components/ui/switch"
+} from "../../components/ui/select"
+import { Switch } from "../../components/ui/switch"
 import { Loader2 } from "lucide-react"
-import type { UserInput, UserRole } from "@/lib/types/user"
+import type { UserInput, UserRole } from "../../lib/types/user"
 
 interface UserModalProps {
   open: boolean

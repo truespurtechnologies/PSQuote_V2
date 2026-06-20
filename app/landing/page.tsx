@@ -5,13 +5,13 @@ export const dynamic = 'force-dynamic'
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { useAuth } from '@/hooks/use-enhanced-auth';
+import { Button } from '../../components/ui/button';
+import { useAuth } from '../../hooks/use-enhanced-auth';
 import { UserProfile } from '@/components/user-profile';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
 import { LogOut, User, Activity, Bell, FileText, Plus, Settings } from 'lucide-react';
-import profileService from '@/lib/supabase/profile-service';
-import { supabase } from '@/lib/supabase/client';
+import profileService from '../../lib/supabase/profile-service';
+import { supabase } from '../../lib/supabase/client';
 
 // Error boundary component with fallback support
 interface ErrorBoundaryProps {

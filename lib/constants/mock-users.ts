@@ -1,4 +1,4 @@
-import { AppUser } from "@/lib/types/user"
+import { AppUser } from "../types/user"
 
 export const mockUsers: AppUser[] = [
   {

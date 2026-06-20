@@ -2,9 +2,9 @@
 
 import { useRouter, usePathname } from 'next/navigation';
 import { useEffect } from 'react';
-import { useAuth as useEnhancedAuth } from '@/components/auth/enhanced-auth-context';
-import { AppSession } from '@/types/auth';
-import { supabase } from '@/lib/supabase/client';
+import { useAuth as useEnhancedAuth } from '../components/auth/enhanced-auth-context';
+import { AppSession } from '../types/auth';
+import { supabase } from '../lib/supabase/client';
 
 /**
  * A hook that provides authentication state and methods.

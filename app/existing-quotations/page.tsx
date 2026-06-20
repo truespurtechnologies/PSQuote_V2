@@ -6,16 +6,16 @@ export const dynamic = 'force-dynamic'
 
 import { useState, useEffect, useCallback, useMemo } from "react"
 import { useRouter } from "next/navigation"
-import { useAuth } from "@/components/auth/enhanced-auth-context"
-import { QuotationDB, type QuotationItem, type SavedQuotation, type IQuotationDB } from "@/lib/quotation-db"
-import { supabase } from "@/lib/supabase/client"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import { useAuth } from "../../components/auth/enhanced-auth-context"
+import { QuotationDB, type QuotationItem, type SavedQuotation, type IQuotationDB } from "../../lib/quotation-db"
+import { supabase } from "../../lib/supabase/client"
+import { Button } from "../../components/ui/button"
+import { Input } from "../../components/ui/input"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card"
+import { Badge } from "../../components/ui/badge"
 import { format } from "date-fns"
 import { Search, Trash2, FileText, Loader2, ArrowLeft, Eye, Edit, Plus, AlertCircle, X } from "lucide-react"
-import { useToast } from "@/components/ui/use-toast"
+import { useToast } from "../../components/ui/use-toast"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,14 +25,14 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+} from "../../components/ui/alert-dialog"
+import { Alert, AlertDescription, AlertTitle } from "../../components/ui/alert"
 import { QuotationPreview } from "@/components/quotation-preview"
 import { LoadingSlipPreview } from "@/components/loading-slip-preview"
 import { POSQuotationPreview } from "@/components/pos-quotation-preview"
 import { POSLoadingSlipPreview } from "@/components/pos-loading-slip-preview"
 import { Printer, Truck, Receipt } from "lucide-react"
-import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "../../components/ui/dialog"
 
 // Import product types for enrichment
 interface Product {

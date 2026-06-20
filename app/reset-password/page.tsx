@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import ResetPasswordForm from './ResetPasswordForm';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Skeleton } from '../../components/ui/skeleton';
 
 export default function ResetPasswordPage() {
   return (

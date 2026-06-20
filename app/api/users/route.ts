@@ -1,20 +1,29 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
-import { log } from '@/lib/logger'
-import { rateLimiters } from '@/lib/rate-limit'
+import { log } from '../../../lib/logger'
+import { rateLimiters } from '../../../lib/rate-limit'
 
 // Ensure this route uses the Node.js runtime (required to access secure env vars)
 export const runtime = 'nodejs'
 // Avoid static optimization/caching for user listings
 export const dynamic = 'force-dynamic'
-import { createAdminClient } from '@/lib/supabase-admin'
-import type { AppUser } from '@/lib/types/user'
+import { createAdminClient } from '../../../lib/supabase-admin'
+import type { AppUser } from '../../../lib/types/user'
 
-// Zod validation schema for user creation
+// Input sanitization utilities
+const sanitizeString = (str: string): string => {
+  return str.trim().replace(/[<>]/g, ''); // Remove potential HTML tags
+};
+
+const sanitizeEmail = (email: string): string => {
+  return email.toLowerCase().trim();
+};
+
+// Zod validation schema for user creation with sanitization
 const createUserSchema = z.object({
-  username: z.string().min(3, 'Username must be at least 3 characters').max(50, 'Username must be at most 50 characters').regex(/^[a-zA-Z0-9_-]+$/, 'Username can only contain letters, numbers, underscores, and hyphens'),
-  name: z.string().min(1, 'Name is required').max(100, 'Name must be at most 100 characters'),
-  email: z.string().email('Invalid email format'),
+  username: z.string().min(3, 'Username must be at least 3 characters').max(50, 'Username must be at most 50 characters').regex(/^[a-zA-Z0-9_-]+$/, 'Username can only contain letters, numbers, underscores, and hyphens').transform(sanitizeString),
+  name: z.string().min(1, 'Name is required').max(100, 'Name must be at most 100 characters').transform(sanitizeString),
+  email: z.string().email('Invalid email format').transform(sanitizeEmail),
   role: z.enum(['USER', 'ADMIN', 'MANAGER'], { errorMap: () => ({ message: 'Role must be USER, ADMIN, or MANAGER' }) }),
   status: z.enum(['ACTIVE', 'INACTIVE'], { errorMap: () => ({ message: 'Status must be ACTIVE or INACTIVE' }) }).optional().default('ACTIVE'),
   password: z.string().min(8, 'Password must be at least 8 characters').regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, 'Password must contain at least one lowercase letter, one uppercase letter, and one number').optional(),
@@ -102,7 +111,14 @@ export async function GET(request: Request) {
     })
 
     log.info('Successfully mapped users data', { userCount: result.length });
-    return NextResponse.json({ users: result })
+    return NextResponse.json({ users: result }, {
+      headers: {
+        'X-Content-Type-Options': 'nosniff',
+        'X-Frame-Options': 'DENY',
+        'X-XSS-Protection': '1; mode=block',
+        'Referrer-Policy': 'strict-origin-when-cross-origin'
+      }
+    })
   } catch (error: any) {
     log.error('Unexpected error in users API', {
       error: error?.message || 'Unknown error',
@@ -213,7 +229,15 @@ export async function POST(request: Request) {
       lastUpdated: profile?.updated_at || new Date().toISOString(),
     }
 
-    return NextResponse.json({ user: appUser }, { status: 201 })
+    return NextResponse.json({ user: appUser }, { 
+      status: 201,
+      headers: {
+        'X-Content-Type-Options': 'nosniff',
+        'X-Frame-Options': 'DENY',
+        'X-XSS-Protection': '1; mode=block',
+        'Referrer-Policy': 'strict-origin-when-cross-origin'
+      }
+    })
   } catch (error) {
     log.error('Unexpected error in POST users API', {
       error: error instanceof Error ? error.message : 'Unknown error',

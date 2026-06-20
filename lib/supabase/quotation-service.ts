@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Database } from '../../types/database.types';
+import type { Database } from '../database.types';
 
 // Define the QuotationItem interface
 export interface QuotationItem {
@@ -64,7 +64,7 @@ export class QuotationService {
       // No valid_until in the database schema, using date as fallback
       validUntil: row.date,
       status: row.status || 'draft',
-      notes: row.notes || '',
+      // notes field doesn't exist in database schema, using empty string
       termsConditions: row.terms_conditions || [],
       subtotal: row.subtotal,
       // No discount_amount in the database schema, using 0 as default
@@ -99,8 +99,8 @@ export class QuotationService {
         // Using grand_total instead of total_amount
         total: row.grand_total
       },
-      createdAt: new Date(row.created_at),
-      updatedAt: new Date(row.updated_at)
+      createdAt: new Date(row.created_at || ''),
+      updatedAt: new Date(row.updated_at || '')
     };
   }
 
@@ -113,8 +113,7 @@ export class QuotationService {
       date: quotation.date,
       // No valid_until in the database schema, using date as fallback
       status: quotation.status || 'draft',
-      notes: quotation.notes || null,
-      terms_conditions: quotation.termsConditions.length > 0 ? quotation.termsConditions : null,
+            terms_conditions: quotation.termsConditions || [],
       subtotal: quotation.subtotal,
       // Using gst_amount instead of tax_amount
       gst_amount: quotation.taxAmount || 0,

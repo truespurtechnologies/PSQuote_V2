@@ -1,11 +1,11 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
+import { Button } from "../../components/ui/button"
 import { useRouter, useSearchParams } from "next/navigation"
 import { ArrowLeft } from "lucide-react"
-import { UserManagement } from "@/components/settings/user-management"
-import { ProductCatalog } from "@/components/settings/product-catalog"
-import { SettingsTabs } from "@/components/settings/settings-tabs"
+import { UserManagement } from "../../components/settings/user-management"
+import { ProductCatalog } from "../../components/settings/product-catalog"
+import { SettingsTabs } from "../../components/settings/settings-tabs"
 import { useMemo } from "react"
 
 type TabType = 'users' | 'products'

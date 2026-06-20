@@ -1,10 +1,10 @@
 import React, { useState, useCallback } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Switch } from '@/components/ui/switch';
-import { TableRow, TableCell } from '@/components/ui/table';
+import { Button } from '../../components/ui/button';
+import { Input } from '../../components/ui/input';
+import { Switch } from '../../components/ui/switch';
+import { TableRow, TableCell } from '../../components/ui/table';
 import { Pencil, Trash2, Check, X } from 'lucide-react';
-import { Product, ProductBase } from '@/types/product';
+import { Product, ProductBase } from '../../types/product';
 
 interface ProductRowProps {
   product: Product;

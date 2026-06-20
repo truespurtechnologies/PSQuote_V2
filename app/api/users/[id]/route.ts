@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 // Ensure Node.js runtime for secure env access
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
-import { createAdminClient } from '@/lib/supabase-admin'
+import { createAdminClient } from '../../../../lib/supabase-admin'
 
 // Map UI role strings to stored profile role strings
 const normalizeRole = (role: any) => {
@@ -13,8 +13,8 @@ const normalizeRole = (role: any) => {
 
 // PATCH /api/users/[id]
 // Body can include: { name, username, email, role, status }
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
-  const id = params.id
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
   try {
     const admin = createAdminClient()
     const body = await req.json()
@@ -57,8 +57,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 }
 
 // DELETE /api/users/[id]
-export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
-  const id = params.id
+export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
   try {
     const admin = createAdminClient()
 

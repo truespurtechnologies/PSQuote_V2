@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { initializeSupabaseServices } from '@/lib/supabase/init';
-import { Toaster } from '@/components/ui/toaster';
-import { ErrorBoundary } from '@/components/ErrorBoundary';
+// import { initializeSupabaseServices } from '../../lib/supabase/init';
+import { Toaster } from '../components/ui/toaster';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 
 export default function ClientLayout({
   children,
@@ -16,7 +16,7 @@ export default function ClientLayout({
   useEffect(() => {
     const init = async () => {
       try {
-        await initializeSupabaseServices();
+        // await initializeSupabaseServices();
         setIsInitialized(true);
       } catch (err) {
         console.error('Failed to initialize Supabase services:', err);

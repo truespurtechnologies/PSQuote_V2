@@ -1,5 +1,6 @@
 import { Component, ErrorInfo, ReactNode } from 'react';
-import { Button } from '@/components/ui/button';
+import { Button } from '../components/ui/button';
+import { log } from '../lib/logger';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -21,7 +22,26 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('Error caught by ErrorBoundary:', error, errorInfo);
+    // Log detailed error information for debugging
+    log.error('Error caught by ErrorBoundary:', {
+      error: error.message,
+      stack: error.stack,
+      componentStack: errorInfo.componentStack,
+      // In production, sanitize sensitive information
+      isProduction: process.env.NODE_ENV === 'production'
+    });
+  }
+
+  private getSanitizedErrorMessage(error: Error | null): string {
+    if (!error) return 'An unexpected error occurred';
+    
+    // In production, don't expose detailed error messages
+    if (process.env.NODE_ENV === 'production') {
+      return 'Something went wrong. Please try again.';
+    }
+    
+    // In development, show the actual error message
+    return error.message;
   }
 
   render() {
@@ -32,7 +52,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             <div className="text-red-500 text-5xl mb-4">⚠️</div>
             <h2 className="text-2xl font-bold text-white mb-2">Something went wrong</h2>
             <p className="text-gray-300 mb-4">
-              {this.state.error?.message || 'An unexpected error occurred'}
+              {this.getSanitizedErrorMessage(this.state.error)}
             </p>
             <Button
               onClick={() => {

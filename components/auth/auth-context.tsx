@@ -7,6 +7,7 @@ import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase/client';
 import { useSessionTimeout } from '@/hooks/useSessionTimeout';
 import { toast } from '@/components/ui/use-toast';
+import { log } from '@/lib/logger';
 
 // Debug function for auth context
 const debug = (message: string, ...args: any[]) => {
@@ -105,14 +106,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         // Set new refresh timeout
         sessionRefreshTimeoutRef.current = setTimeout(() => {
-          refreshSession().catch(console.error);
+          refreshSession().catch(error => log.error('Auto refresh session failed:', { error: error instanceof Error ? error.message : 'Unknown error' }));
         }, refreshTime);
         
         return session;
       }
       return null;
     } catch (error) {
-      console.error('Error refreshing session:', error);
+      log.error('Error refreshing session:', { error: error instanceof Error ? error.message : 'Unknown error' });
       const errorMessage = error instanceof Error ? error.message : 'Failed to refresh session';
       
       // If refresh fails, try again after a delay (exponential backoff)
@@ -188,7 +189,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           });
         }
       } catch (error) {
-        console.error('Error initializing auth:', error);
+        log.error('Error initializing auth:', { error: error instanceof Error ? error.message : 'Unknown error' });
         setAuthState({
           ...initialAuthState,
           error: error instanceof Error ? error.message : 'Failed to initialize auth',
@@ -299,7 +300,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       };
       
     } catch (error) {
-      console.error('Error signing in:', error);
+      log.error('Error signing in:', { error: error instanceof Error ? error.message : 'Unknown error' });
       const errorMessage = error instanceof Error ? error.message : 'Failed to sign in';
       
       // Reset state on error
@@ -384,11 +385,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoading: false,
       });
       
-      // Clear any cached data
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('sb-auth-token');
-        localStorage.removeItem('sb-auth-token-2');
-      }
+      // Session cleanup is handled automatically by Supabase
       
       // Use Next.js router for client-side navigation
       router.push('/login');
@@ -396,7 +393,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // This return won't be reached due to the redirect, but TypeScript needs it
       return { error: null };
     } catch (error) {
-      console.error('Error signing out:', error);
+      log.error('Error signing out:', { error: error instanceof Error ? error.message : 'Unknown error' });
       return handleAuthError(error);
     } finally {
       setLoading(false);
@@ -405,7 +402,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Handle errors in the auth context
   const handleAuthError = (error: unknown) => {
-    console.error('Auth error:', error);
+    log.error('Auth error:', { error: error instanceof Error ? error.message : 'Unknown error' });
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
     setAuthState(prev => ({
       ...prev,

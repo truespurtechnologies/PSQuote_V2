@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/hooks/use-enhanced-auth';
+import { useAuth } from '../../hooks/use-enhanced-auth';
 import Link from 'next/link';
 
 export default function ForgotPasswordPage() {

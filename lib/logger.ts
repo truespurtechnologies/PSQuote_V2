@@ -1,4 +1,4 @@
-import { LogLevel, LogContext, LogEntry } from '@/types/logger';
+import { LogLevel, LogContext, LogEntry } from '../types/logger';
 
 /**
  * Logger utility for consistent logging throughout the application

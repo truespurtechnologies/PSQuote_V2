@@ -2,18 +2,18 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useAuth } from '@/components/auth/enhanced-auth-context';
-import { supabase } from '@/lib/supabase/client';
+import { useAuth } from '../../components/auth/enhanced-auth-context';
+import { supabase } from '../../lib/supabase/client';
 import Link from 'next/link';
-import { Alert } from '@/components/ui/alert';
+import { Alert } from '../../components/ui/alert';
 import { Mail, Lock, Eye, EyeOff, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Button } from '../../components/ui/button';
+import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { loginSchema, type LoginFormData } from '@/types/auth-forms';
-import { cn } from '@/lib/utils';
+import { loginSchema, type LoginFormData } from '../../types/auth-forms';
+import { cn } from '../../lib/utils';
 
 // Simple logger implementation
 const log = {
