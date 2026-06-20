@@ -47,6 +47,8 @@ interface Product {
   id: string
   item_name: string  // Non-null in our app
   item_weight?: number
+  display_prefix?: string
+  item_size?: string
 }
 
 interface QuotationItem {
@@ -138,7 +140,7 @@ export default function NewQuotationPage() {
     try {
       const { data, error } = await supabase
         .from('products')
-        .select('id, item_name, item_weight')
+        .select('id, item_name, item_weight, display_prefix, item_size')
         .order('item_name', { ascending: true });
 
       if (error) throw error;
@@ -151,7 +153,9 @@ export default function NewQuotationPage() {
             validProducts.push({
               id: item.id,
               item_name: item.item_name,
-              item_weight: item.item_weight ?? undefined
+              item_weight: item.item_weight ?? undefined,
+              display_prefix: item.display_prefix ?? undefined,
+              item_size: item.item_size ?? undefined
             });
           }
         }
@@ -982,6 +986,23 @@ export default function NewQuotationPage() {
     setShowPOSQuotation(false)
   }
 
+  // Helper function to enrich items with product data for POS display
+  const enrichItemsWithProductData = (items: QuotationItem[]) => {
+    return items.map(item => {
+      if (item.productId) {
+        const product = products.find(p => p.id === item.productId);
+        if (product) {
+          return {
+            ...item,
+            displayPrefix: product.display_prefix,
+            itemSize: product.item_size
+          };
+        }
+      }
+      return item;
+    });
+  };
+
 
   if (showPreview) {
     return (
@@ -1075,7 +1096,7 @@ export default function NewQuotationPage() {
         <div id="pos-quotation-preview-content" className="print-content">
           <POSQuotationPreview
             quotationData={quotationData}
-            items={items}
+            items={enrichItemsWithProductData(items)}
             charges={charges}
             termsConditions={termsConditions}
             totals={totals}
@@ -1110,7 +1131,7 @@ export default function NewQuotationPage() {
         <div id="pos-loading-slip-preview-content" className="print-content">
           <POSLoadingSlipPreview
             quotationData={quotationData}
-            items={items}
+            items={enrichItemsWithProductData(items)}
             totals={totals}
             quotationNumber={savedQuotationNumber || `QT-${Date.now().toString().slice(-6)}`}
           />

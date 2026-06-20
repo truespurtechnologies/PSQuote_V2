@@ -8,6 +8,9 @@ interface QuotationItem {
   totalQtyKg: number
   unitRate: number
   totalValue: number
+  productId?: string
+  displayPrefix?: string
+  itemSize?: string
 }
 
 interface QuotationData {
@@ -32,11 +35,29 @@ export function POSLoadingSlipPreview({
   totals,
   quotationNumber = "QT-001",
 }: POSLoadingSlipPreviewProps) {
-  // Helper function to extract size from description (e.g., "MS PIPE SHS 72x72x2 MM" -> "72x72x2 MM")
-  const extractSize = (description: string): string => {
-    // Pattern to match size specifications like "72x72x2 MM", "50x50x1.6 MM", etc.
-    const sizeMatch = description.match(/([0-9]+x[0-9]+(?:x[0-9.]+)?\s*(?:MM|M|CM|KG|PC)?)/i);
-    return sizeMatch ? sizeMatch[1] : description;
+  // Helper function to format item display with prefix
+  const formatItemDisplay = (item: QuotationItem): string => {
+    // Check if this is a pipe product (prefix starts with P-)
+    const isPipe = item.displayPrefix?.startsWith('P-');
+    
+    // If we have display_prefix and item_size
+    if (item.displayPrefix && item.itemSize) {
+      // For pipes, show only size (no prefix)
+      if (isPipe) {
+        return item.itemSize;
+      }
+      // For other products, show prefix + size
+      return `${item.displayPrefix} ${item.itemSize}`;
+    }
+    
+    // Fallback: extract size from description
+    const sizeMatch = item.description.match(/([0-9]+x[0-9]+(?:x[0-9.]+)?(?:\s*(?:MM|M|CM|KG|PC|ODx|OD|x))?[0-9.]*(?:\s*(?:MM|M|CM|ft))?)/i);
+    if (sizeMatch) {
+      return sizeMatch[1];
+    }
+    
+    // Last resort: return full description
+    return item.description;
   };
   return (
     <>
@@ -192,7 +213,7 @@ export function POSLoadingSlipPreview({
             .map((item, index) => (
               <div key={item.id} className="pos-item-row text-base font-bold" style={{ marginBottom: '2mm' }}>
                 <div style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}>
-                  {index + 1}){extractSize(item.description)} Qty: {item.requiredQty}
+                  {index + 1}){formatItemDisplay(item)} Qty: {item.requiredQty}
                 </div>
               </div>
             ))}
