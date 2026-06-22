@@ -283,6 +283,12 @@ export function QuotationPreview({
                 <span>GST @{charges.gstRate}%:</span>
                 <span className="font-bold">₹{totals.gstAmount.toFixed(2)}</span>
               </div>
+              {totals.roundOff !== 0 && (
+                <div className="flex justify-between text-sm">
+                  <span>Rounded off:</span>
+                  <span className="font-bold">₹{Math.abs(totals.roundOff).toFixed(2)}</span>
+                </div>
+              )}
               <div className="flex justify-between border-t pt-1 text-sm">
                 <span className="font-bold">TOTAL:</span>
                 <span className="font-bold text-red-600">₹{totals.finalTotal.toFixed(2)}</span>

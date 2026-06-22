@@ -3,6 +3,11 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
+      "@/lib/*": ["./lib/*"],
+      "@/components/*": ["./components/*"],
+      "@/hooks/*": ["./hooks/*"],
+      "@/types/*": ["./types/*"],
+      "@/app/*": ["./app/*"],
       "@/lib/supabase/profile-service": ["types/shims/profile-service.ts"],
       "@/lib/supabase-server": ["types/shims/supabase-server.ts"],
       "@/lib/auth-utils": ["types/shims/auth-utils.ts"],
@@ -12,7 +17,7 @@
   "include": [
     "next-env.d.ts",
     "app/**/*",
-    "components/settings/**/*",
+    "components/**/*",
     "hooks/**/*",
     "lib/**/*",
     "middleware.ts",
@@ -22,7 +27,6 @@
   "exclude": [
     "node_modules",
     "__tests__",
-    "components/ui/**/*",
     "**/*.test.ts",
     "**/*.test.tsx",
     "**/*.spec.ts",

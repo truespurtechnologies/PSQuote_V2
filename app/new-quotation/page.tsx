@@ -400,9 +400,12 @@ export default function NewQuotationPage() {
     // GST calculated on (basic total + loading charges)
     const gstAmount = (afterLoading * charges.gstRate) / 100
     const beforeRounding = afterLoading + gstAmount
-    // Use toFixed(2) for consistent decimal display instead of Math.round()
-    const finalTotal = parseFloat(beforeRounding.toFixed(2))
-    const roundOff = parseFloat((finalTotal - beforeRounding).toFixed(2))
+    // Round to nearest whole number for final total
+    const roundedTotal = Math.round(beforeRounding)
+    // Calculate round off difference (rounded amount - actual amount)
+    const roundOff = parseFloat((roundedTotal - beforeRounding).toFixed(2))
+    // Use the rounded total as final amount
+    const finalTotal = roundedTotal
 
     return {
       totalWeight,
@@ -415,6 +418,14 @@ export default function NewQuotationPage() {
   }
 
   const totals = calculateTotals()
+
+  // Update charges.roundOff whenever totals are recalculated
+  useEffect(() => {
+    setCharges(prev => ({
+      ...prev,
+      roundOff: totals.roundOff
+    }))
+  }, [totals.roundOff])
 
   const handleTermChange = (index: number, value: string) => {
     setTermsConditions((prev) => prev.map((term, i) => (i === index ? value : term)))

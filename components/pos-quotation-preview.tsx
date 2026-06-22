@@ -289,6 +289,11 @@ export function POSQuotationPreview({
             <div className="font-bold">
               GST @{charges.gstRate}%: ₹{totals.gstAmount.toFixed(2)}
             </div>
+            {totals.roundOff !== 0 && (
+              <div className="font-bold">
+                Rounded off: ₹{Math.abs(totals.roundOff).toFixed(2)}
+              </div>
+            )}
             <div className="border-t border-dashed pt-1 font-bold">
               TOTAL: ₹{totals.finalTotal.toFixed(2)}
             </div>
