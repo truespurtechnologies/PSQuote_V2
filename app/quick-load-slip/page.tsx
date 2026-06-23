@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase/client";
 import { useEnhancedAuth } from "../../hooks/use-enhanced-auth";
@@ -56,6 +56,102 @@ export default function QuickLoadSlipPage() {
 
   // Rows (start with 5 empty rows)
   const [rows, setRows] = useState<ItemRow[]>(() => Array.from({ length: 5 }, () => makeEmptyRow()));
+
+  // Refs for keyboard navigation
+  const headerFieldsRef = useRef<Record<string, HTMLInputElement | null>>({});
+  const itemFieldsRef = useRef<Record<string, HTMLInputElement | null>>({});
+
+  // Keyboard navigation handler for header fields (Delivery To, Phone, Date)
+  const handleHeaderKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, fieldIndex: number) => {
+    const fields = ['to', 'phone', 'date'];
+    let newFieldIndex = fieldIndex;
+
+    switch (e.key) {
+      case 'ArrowRight':
+      case 'Enter':
+        if (fieldIndex < fields.length - 1) {
+          e.preventDefault();
+          newFieldIndex = fieldIndex + 1;
+        }
+        break;
+      
+      case 'ArrowLeft':
+        if (fieldIndex > 0) {
+          e.preventDefault();
+          newFieldIndex = fieldIndex - 1;
+        }
+        break;
+      
+      default:
+        return;
+    }
+
+    const targetInput = headerFieldsRef.current[fields[newFieldIndex]];
+    if (targetInput) {
+      targetInput.focus();
+      targetInput.select();
+    }
+  };
+
+  // Keyboard navigation handler for item fields
+  const handleItemKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, rowIndex: number, fieldIndex: number) => {
+    const fields = ['qtyInKgPc', 'requiredQty'];
+    const totalRows = rows.length;
+    const totalFields = fields.length;
+
+    let newRowIndex = rowIndex;
+    let newFieldIndex = fieldIndex;
+
+    switch (e.key) {
+      case 'ArrowRight':
+        if (fieldIndex < totalFields - 1) {
+          e.preventDefault();
+          newFieldIndex = fieldIndex + 1;
+        }
+        break;
+      
+      case 'ArrowLeft':
+        if (fieldIndex > 0) {
+          e.preventDefault();
+          newFieldIndex = fieldIndex - 1;
+        }
+        break;
+      
+      case 'ArrowDown':
+        if (rowIndex < totalRows - 1) {
+          e.preventDefault();
+          newRowIndex = rowIndex + 1;
+        }
+        break;
+      
+      case 'ArrowUp':
+        if (rowIndex > 0) {
+          e.preventDefault();
+          newRowIndex = rowIndex - 1;
+        }
+        break;
+      
+      case 'Enter':
+        e.preventDefault();
+        if (fieldIndex < totalFields - 1) {
+          newFieldIndex = fieldIndex + 1;
+        } else if (rowIndex < totalRows - 1) {
+          newRowIndex = rowIndex + 1;
+          newFieldIndex = 0;
+        }
+        break;
+      
+      default:
+        return;
+    }
+
+    const targetKey = `${rows[newRowIndex].id}-${fields[newFieldIndex]}`;
+    const targetInput = itemFieldsRef.current[targetKey];
+    if (targetInput) {
+      targetInput.focus();
+      targetInput.select();
+    }
+  };
 
   function makeEmptyRow(): ItemRow {
     return {
@@ -696,15 +792,34 @@ export default function QuickLoadSlipPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div>
               <label className="block text-sm font-medium mb-1">Delivery To</label>
-              <input className="w-full border rounded px-2 py-1" value={to} onChange={(e) => setTo(e.target.value)} />
+              <input 
+                ref={(el) => headerFieldsRef.current['to'] = el}
+                className="w-full border rounded px-2 py-1" 
+                value={to} 
+                onChange={(e) => setTo(e.target.value)}
+                onKeyDown={(e) => handleHeaderKeyDown(e, 0)}
+              />
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Phone</label>
-              <input className="w-full border rounded px-2 py-1" value={phone} onChange={(e) => setPhone(e.target.value)} />
+              <input 
+                ref={(el) => headerFieldsRef.current['phone'] = el}
+                className="w-full border rounded px-2 py-1" 
+                value={phone} 
+                onChange={(e) => setPhone(e.target.value)}
+                onKeyDown={(e) => handleHeaderKeyDown(e, 1)}
+              />
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Date</label>
-              <input type="date" className="w-full border rounded px-2 py-1" value={date} onChange={(e) => setDate(e.target.value)} />
+              <input 
+                ref={(el) => headerFieldsRef.current['date'] = el}
+                type="date" 
+                className="w-full border rounded px-2 py-1" 
+                value={date} 
+                onChange={(e) => setDate(e.target.value)}
+                onKeyDown={(e) => handleHeaderKeyDown(e, 2)}
+              />
             </div>
           {/* Slip Number removed from UI per request; still maintained in state for backend save */}
         </div>
@@ -758,6 +873,7 @@ export default function QuickLoadSlipPage() {
                   </td>
                   <td className="border px-2 py-1 text-center">
                     <input
+                      ref={(el) => itemFieldsRef.current[`${row.id}-qtyInKgPc`] = el}
                       type="number"
                       min={0}
                       step="0.001"
@@ -773,10 +889,12 @@ export default function QuickLoadSlipPage() {
                           return { ...r, qtyInKgPc, totalQtyKg };
                         }));
                       }}
+                      onKeyDown={(e) => handleItemKeyDown(e, rows.findIndex(r => r.id === row.id), 0)}
                     />
                   </td>
                   <td className="border px-2 py-1 text-center">
                     <input
+                      ref={(el) => itemFieldsRef.current[`${row.id}-requiredQty`] = el}
                       type="number"
                       min={0}
                       className="w-24 border rounded px-2 py-1 text-right no-spinner"
@@ -786,6 +904,7 @@ export default function QuickLoadSlipPage() {
                         const num = val === "" ? 0 : Number(val);
                         updateRowRequiredQty(row.id, isNaN(num) ? 0 : num);
                       }}
+                      onKeyDown={(e) => handleItemKeyDown(e, rows.findIndex(r => r.id === row.id), 1)}
                     />
                   </td>
                   <td className="border px-2 py-1 text-center">
