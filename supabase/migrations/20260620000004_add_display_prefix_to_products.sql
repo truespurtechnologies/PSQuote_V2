@@ -20,9 +20,9 @@ SET display_prefix = CASE
   WHEN item_category = 'BASE PLATE' THEN 'BP'
   
   -- Sheets
-  WHEN item_category = 'CR SHEET' THEN 'CRS'
-  WHEN item_category = 'GI SHEET' THEN 'GI'
-  WHEN item_category = 'HR SHEET' THEN 'HRS'
+  WHEN item_category = 'CR SHEET' THEN 'SH'
+  WHEN item_category = 'GI SHEET' THEN 'SH'
+  WHEN item_category = 'HR SHEET' THEN 'SH'
   WHEN item_category = 'ROOFING SHEET' THEN 'ROOF'
   
   -- Cut Plates

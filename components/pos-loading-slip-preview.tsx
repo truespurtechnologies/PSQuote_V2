@@ -11,6 +11,7 @@ interface QuotationItem {
   productId?: string
   displayPrefix?: string
   itemSize?: string
+  productName?: string
 }
 
 interface QuotationData {
@@ -45,25 +46,76 @@ export function POSLoadingSlipPreview({
         
     // If we have display_prefix and item_size
     if (item.displayPrefix && item.itemSize) {
-      // For pipes, show only size (no prefix)
+      // For pipes, show only size (no prefix) + any user text
       if (isPipe) {
-        return item.itemSize;
+        let userText = '';
+        if (item.description && item.productName) {
+          const normalizeDesc = (desc: string) => desc.toLowerCase().trim().replace(/\s+/g, ' ');
+          const descNormalized = normalizeDesc(item.description);
+          const productNameNormalized = normalizeDesc(item.productName);
+          
+          if (descNormalized.startsWith(productNameNormalized) && descNormalized.length > productNameNormalized.length) {
+            const extraText = item.description.substring(item.productName.length).trim();
+            if (extraText) {
+              userText = ` ${extraText}`;
+            }
+          }
+        }
+        return `${item.itemSize}${userText}`;
       }
-      // For roofing sheets, extract only the ft value (e.g., "1.5ft" from "PPGI-0.47-1.5ft")
+      // For roofing sheets, extract ft value and any color/text (e.g., "10.5ft BLUE" from "PPGI-0.47-10.5ft - blue")
       if (isRoof) {
-        const ftMatch = item.itemSize.match(/([0-9.]+ft)$/i);
+        const ftMatch = item.itemSize.match(/-([0-9.]+ft)(?:\s*-\s*(.+))?$/i);
         if (ftMatch) {
-          return `${item.displayPrefix} ${ftMatch[1]}`;
+          const ftValue = ftMatch[1];
+          const colorText = ftMatch[2] ? ` ${ftMatch[2].toUpperCase()}` : '';
+          return `${item.displayPrefix} ${ftValue}${colorText}`;
         }
       }
-      // For other products, show prefix + size
-      return `${item.displayPrefix} ${item.itemSize}`;
+      // For other products, show prefix + size + any user text
+      // Check if user has added custom text after the standard product name
+      let userText = '';
+      if (item.description && item.productName) {
+        // Extract user text by comparing description with original product name
+        const normalizeDesc = (desc: string) => desc.toLowerCase().trim().replace(/\s+/g, ' ');
+        const descNormalized = normalizeDesc(item.description);
+        const productNameNormalized = normalizeDesc(item.productName);
+        
+        // If description starts with product name and is longer, extract the extra text
+        if (descNormalized.startsWith(productNameNormalized) && descNormalized.length > productNameNormalized.length) {
+          const extraText = item.description.substring(item.productName.length).trim();
+          if (extraText) {
+            userText = ` ${extraText}`;
+          }
+        }
+      }
+      
+      return `${item.displayPrefix} ${item.itemSize}${userText}`;
     }
     
     // Fallback: extract size from description
+    // First try roofing sheet pattern with color (e.g., "ROOFING SHEET COLOUR PPGI-0.47-10.5ft - blue" -> "ROOF 10.5ft BLUE")
+    const roofMatch = item.description.match(/-([0-9.]+ft)(?:\s*-\s*(.+))?$/i);
+    if (roofMatch) {
+      const ftValue = roofMatch[1];
+      const colorText = roofMatch[2] ? ` ${roofMatch[2].toUpperCase()}` : '';
+      return `ROOF ${ftValue}${colorText}`;
+    }
+    
+    // Then try standard size patterns (e.g., "125x200x16 MM")
     const sizeMatch = item.description.match(/([0-9]+x[0-9]+(?:x[0-9.]+)?(?:\s*(?:MM|M|CM|KG|PC|ODx|OD|x))?[0-9.]*(?:\s*(?:MM|M|CM|ft))?)/i);
     if (sizeMatch) {
-      return sizeMatch[1];
+      // Check if there's user text after the size pattern
+      const sizePattern = sizeMatch[1];
+      const remainingText = item.description.substring(sizeMatch.index! + sizePattern.length).trim();
+      
+      if (remainingText) {
+        // Return size + user text
+        return `${sizePattern} ${remainingText}`;
+      } else {
+        // Return just size
+        return sizePattern;
+      }
     }
     
     // Last resort: return full description

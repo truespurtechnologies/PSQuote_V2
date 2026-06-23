@@ -216,10 +216,20 @@ function ExistingQuotationsPage() {
         const normalizeDesc = (desc: string) => desc.toLowerCase().trim().replace(/\s+/g, ' ');
         const itemDescNormalized = normalizeDesc(item.description);
         
+        // First try exact match
         product = products.find(p => {
           const productDescNormalized = normalizeDesc(p.item_name);
           return productDescNormalized === itemDescNormalized;
         });
+        
+        // If no exact match, try partial match (description starts with product name)
+        // This handles cases where user adds custom text after the product name
+        if (!product) {
+          product = products.find(p => {
+            const productDescNormalized = normalizeDesc(p.item_name);
+            return itemDescNormalized.startsWith(productDescNormalized);
+          });
+        }
       }
       
       // If product found, enrich with display data
@@ -234,7 +244,8 @@ function ExistingQuotationsPage() {
           ...item,
           displayPrefix: product.display_prefix,
           itemSize: product.item_size,
-          productId: product.id // Also set productId for future reference
+          productId: product.id, // Also set productId for future reference
+          productName: product.item_name // Store original product name for user text extraction
         };
       }
       
