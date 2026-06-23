@@ -113,6 +113,74 @@ export default function NewQuotationPage() {
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [showUnsavedChangesDialog, setShowUnsavedChangesDialog] = useState(false);
   const [editingCharges, setEditingCharges] = useState<Record<string, string>>({});
+  const headerFieldsRef = useRef<Record<string, HTMLInputElement | null>>({});
+  const chargesFieldsRef = useRef<Record<string, HTMLInputElement | null>>({});
+
+  // Keyboard navigation handler for header fields (To, Phone, Date)
+  const handleHeaderKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, fieldIndex: number) => {
+    const fields = ['to', 'phone', 'date'];
+    let newFieldIndex = fieldIndex;
+
+    switch (e.key) {
+      case 'ArrowRight':
+      case 'Enter':
+        if (fieldIndex < fields.length - 1) {
+          e.preventDefault();
+          newFieldIndex = fieldIndex + 1;
+        }
+        break;
+      
+      case 'ArrowLeft':
+        if (fieldIndex > 0) {
+          e.preventDefault();
+          newFieldIndex = fieldIndex - 1;
+        }
+        break;
+      
+      default:
+        return;
+    }
+
+    const targetInput = headerFieldsRef.current[fields[newFieldIndex]];
+    if (targetInput) {
+      targetInput.focus();
+      targetInput.select();
+    }
+  };
+
+  // Keyboard navigation handler for additional charges fields (Loading, GST Rate)
+  const handleChargesKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, fieldIndex: number) => {
+    const fields = ['loading', 'gstRate'];
+    let newFieldIndex = fieldIndex;
+
+    switch (e.key) {
+      case 'ArrowRight':
+      case 'ArrowDown':
+      case 'Enter':
+        if (fieldIndex < fields.length - 1) {
+          e.preventDefault();
+          newFieldIndex = fieldIndex + 1;
+        }
+        break;
+      
+      case 'ArrowLeft':
+      case 'ArrowUp':
+        if (fieldIndex > 0) {
+          e.preventDefault();
+          newFieldIndex = fieldIndex - 1;
+        }
+        break;
+      
+      default:
+        return;
+    }
+
+    const targetInput = chargesFieldsRef.current[fields[newFieldIndex]];
+    if (targetInput) {
+      targetInput.focus();
+      targetInput.select();
+    }
+  };
   
   // Data State
   const [products, setProducts] = useState<Product[]>([]);
@@ -1363,10 +1431,12 @@ export default function NewQuotationPage() {
                     To (Client Name) *
                   </Label>
                   <Input
+                    ref={(el) => headerFieldsRef.current['to'] = el}
                     id="to"
                     name="to"
                     value={quotationData.to}
                     onChange={handleQuotationChange}
+                    onKeyDown={(e) => handleHeaderKeyDown(e, 0)}
                     className="border-gray-300 focus:border-red-500 focus:ring-red-500"
                     required
                   />
@@ -1376,10 +1446,12 @@ export default function NewQuotationPage() {
                     Phone Number
                   </Label>
                   <Input
+                    ref={(el) => headerFieldsRef.current['phone'] = el}
                     id="phone"
                     name="phone"
                     value={quotationData.phone}
                     onChange={handleQuotationChange}
+                    onKeyDown={(e) => handleHeaderKeyDown(e, 1)}
                     placeholder="PH:98410 43637"
                     className="border-gray-300 focus:border-red-500 focus:ring-red-500"
                   />
@@ -1389,11 +1461,13 @@ export default function NewQuotationPage() {
                     Date *
                   </Label>
                   <Input
+                    ref={(el) => headerFieldsRef.current['date'] = el}
                     id="date"
                     name="date"
                     type="date"
                     value={quotationData.date}
                     onChange={handleQuotationChange}
+                    onKeyDown={(e) => handleHeaderKeyDown(e, 2)}
                     className="border-gray-300 focus:border-red-500 focus:ring-red-500"
                     required
                   />
@@ -1457,6 +1531,7 @@ export default function NewQuotationPage() {
                   <div className="flex items-center justify-between">
                     <Label className="text-black">Loading Charges:</Label>
                     <Input
+                      ref={(el) => chargesFieldsRef.current['loading'] = el}
                       type="text"
                       inputMode="decimal"
                       value={editingCharges['loading'] !== undefined 
@@ -1494,17 +1569,20 @@ export default function NewQuotationPage() {
                           return newValues;
                         });
                       }}
+                      onKeyDown={(e) => handleChargesKeyDown(e, 0)}
                       className="w-32 border-gray-300 focus:border-red-500 focus:ring-red-500 text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />
                   </div>
                   <div className="flex items-center justify-between">
                     <Label className="text-black">GST Rate (%):</Label>
                     <Input
+                      ref={(el) => chargesFieldsRef.current['gstRate'] = el}
                       type="number"
                       value={charges.gstRate}
                       onChange={(e) =>
                         setCharges((prev) => ({ ...prev, gstRate: Number.parseFloat(e.target.value) || 0 }))
                       }
+                      onKeyDown={(e) => handleChargesKeyDown(e, 1)}
                       className="w-32 border-gray-300 focus:border-red-500 focus:ring-red-500 text-right"
                     />
                   </div>

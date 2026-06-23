@@ -2,7 +2,7 @@ import { ItemInput } from "./ui/item-input"
 import { Input } from "./ui/input"
 import { Button } from "./ui/button"
 import { Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 
 export interface QuotationItem {
   id: string;
@@ -37,6 +37,73 @@ export function QuotationItemsTable({
   steelItems = [],
 }: QuotationItemsTableProps) {
   const [editingValues, setEditingValues] = useState<Record<string, string>>({});
+  const inputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+
+  // Handle keyboard navigation
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, rowIndex: number, fieldIndex: number) => {
+    const fields = ['qtyInKgPc', 'unitRate', 'requiredQty'];
+    const totalRows = items.length;
+    const totalFields = fields.length;
+
+    let newRowIndex = rowIndex;
+    let newFieldIndex = fieldIndex;
+
+    switch (e.key) {
+      case 'ArrowRight':
+        // Move to next field in same row
+        if (fieldIndex < totalFields - 1) {
+          e.preventDefault();
+          newFieldIndex = fieldIndex + 1;
+        }
+        break;
+      
+      case 'ArrowLeft':
+        // Move to previous field in same row
+        if (fieldIndex > 0) {
+          e.preventDefault();
+          newFieldIndex = fieldIndex - 1;
+        }
+        break;
+      
+      case 'ArrowDown':
+        // Move to same field in next row
+        if (rowIndex < totalRows - 1) {
+          e.preventDefault();
+          newRowIndex = rowIndex + 1;
+        }
+        break;
+      
+      case 'ArrowUp':
+        // Move to same field in previous row
+        if (rowIndex > 0) {
+          e.preventDefault();
+          newRowIndex = rowIndex - 1;
+        }
+        break;
+      
+      case 'Enter':
+        // Move to next field, or next row if at end
+        e.preventDefault();
+        if (fieldIndex < totalFields - 1) {
+          newFieldIndex = fieldIndex + 1;
+        } else if (rowIndex < totalRows - 1) {
+          newRowIndex = rowIndex + 1;
+          newFieldIndex = 0;
+        }
+        break;
+      
+      default:
+        return;
+    }
+
+    // Focus the target input
+    const targetKey = `${items[newRowIndex].id}-${fields[newFieldIndex]}`;
+    const targetInput = inputRefs.current[targetKey];
+    if (targetInput) {
+      targetInput.focus();
+      targetInput.select();
+    }
+  };
 
   const handleDecimalChange = (id: string, field: 'qtyInKgPc' | 'unitRate' | 'requiredQty', value: string) => {
     // Allow numbers, single decimal point, and empty string
@@ -155,31 +222,37 @@ export function QuotationItemsTable({
               </td>
               <td className="p-2">
                 <Input
+                  ref={(el) => inputRefs.current[`${item.id}-qtyInKgPc`] = el}
                   type="text"
                   inputMode="decimal"
                   value={getDisplayValue(item.id, 'qtyInKgPc', item.qtyInKgPc)}
                   onChange={(e) => handleDecimalChange(item.id, 'qtyInKgPc', e.target.value)}
                   onBlur={(e) => handleBlur(item.id, 'qtyInKgPc', e.target.value)}
+                  onKeyDown={(e) => handleKeyDown(e, index, 0)}
                   className="border-gray-300 focus:border-red-500 focus:ring-red-500 text-center"
                 />
               </td>
               <td className="p-2">
                 <Input
+                  ref={(el) => inputRefs.current[`${item.id}-unitRate`] = el}
                   type="text"
                   inputMode="decimal"
                   value={getDisplayValue(item.id, 'unitRate', item.unitRate)}
                   onChange={(e) => handleDecimalChange(item.id, 'unitRate', e.target.value)}
                   onBlur={(e) => handleBlur(item.id, 'unitRate', e.target.value)}
+                  onKeyDown={(e) => handleKeyDown(e, index, 1)}
                   className="border-gray-300 focus:border-red-500 focus:ring-red-500 text-center"
                 />
               </td>
               <td className="p-2">
                 <Input
+                  ref={(el) => inputRefs.current[`${item.id}-requiredQty`] = el}
                   type="text"
                   inputMode="decimal"
                   value={getDisplayValue(item.id, 'requiredQty', item.requiredQty)}
                   onChange={(e) => handleDecimalChange(item.id, 'requiredQty', e.target.value)}
                   onBlur={(e) => handleBlur(item.id, 'requiredQty', e.target.value)}
+                  onKeyDown={(e) => handleKeyDown(e, index, 2)}
                   className="border-gray-300 focus:border-red-500 focus:ring-red-500 text-center"
                 />
               </td>
